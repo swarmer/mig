@@ -2,7 +2,9 @@ extern crate mig;
 
 use std::process::exit;
 
+use mig::demo;
+
 
 fn main() {
-    exit(0);
+    exit(demo::mig_demo());
 }
