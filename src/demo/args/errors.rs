@@ -1,6 +1,5 @@
 use std;
 use std::fmt;
-use std::rc::Rc;
 
 use docopt;
 
@@ -9,7 +8,6 @@ use docopt;
 pub struct Error {
     pub message: String,
     pub exit_code: i32,
-    pub cause: Rc<docopt::Error>,
 }
 
 impl fmt::Display for Error {
@@ -24,13 +22,29 @@ impl std::error::Error for Error {
     }
 
     fn cause(&self) -> Option<&std::error::Error> {
-        Some(&*self.cause)
+        None
     }
 }
 
 impl From<docopt::Error> for Error {
     fn from(error: docopt::Error) -> Error {
-        Error { message: "TODO".to_string(), exit_code: 1, cause: Rc::new(error) }
+        match error {
+            docopt::Error::WithProgramUsage(err_box, message) => {
+                let exit_code = match *err_box {
+                    docopt::Error::Usage(..) => panic!("Invalid usage string!"),
+                    docopt::Error::Argv(..) => 1,
+                    docopt::Error::NoMatch => 1,
+                    docopt::Error::Decode(..) => 1,
+                    docopt::Error::WithProgramUsage(..) => unreachable!(),
+                    docopt::Error::Help => 0,
+                    docopt::Error::Version(..) => 0,
+                };
+                Error { message: message, exit_code: exit_code }
+            },
+            _ => {
+                panic!("Unknown docopt error!");
+            }
+        }
     }
 }
 

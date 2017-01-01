@@ -13,7 +13,7 @@ Usage:
   mig (-h | --help)
 
 Options:
-  <address> Address to serve on or to connect to in form: hostname:port .
+  <address> Address to serve on or to connect to in form: hostname:port
   --version  Show version.
   -h --help  Show this screen.
 ";

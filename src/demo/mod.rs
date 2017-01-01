@@ -12,11 +12,11 @@ pub fn mig_demo() -> i32 {
             0
         },
         Ok(args::MigCommand::Server { address }) => {
-            debug!("Running server on {}", address);
+            info!("Running server on {}", address);
             0
         },
         Ok(args::MigCommand::Client { address }) => {
-            debug!("Running client connected to {}", address);
+            info!("Running client connected to {}", address);
             0
         },
         Err(err) => {
