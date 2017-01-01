@@ -7,17 +7,21 @@ pub fn mig_demo() -> i32 {
     env_logger::init().unwrap();
 
     match args::parse_command() {
-        args::MigCommand::Version => {
+        Ok(args::MigCommand::Version) => {
             println!("{}", ::VERSION);
             0
         },
-        args::MigCommand::Server { host, port } => {
-            debug!("Running server on {}:{}", host, port);
+        Ok(args::MigCommand::Server { address }) => {
+            debug!("Running server on {}", address);
             0
         },
-        args::MigCommand::Client { host, port } => {
-            debug!("Running client connected to {}:{}", host, port);
+        Ok(args::MigCommand::Client { address }) => {
+            debug!("Running client connected to {}", address);
             0
+        },
+        Err(err) => {
+            println!("{}", &err.message);
+            err.exit_code
         },
     }
 }

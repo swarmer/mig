@@ -1,10 +1,10 @@
 extern crate mig;
 
-use std::process::exit;
+use std::process;
 
 use mig::demo;
 
 
 fn main() {
-    exit(demo::mig_demo());
+    process::exit(demo::mig_demo());
 }
