@@ -3,6 +3,18 @@ mod args;
 use env_logger;
 
 
+fn run_server(address: String) -> i32 {
+    info!("Running server on {}", address);
+    0
+}
+
+
+fn run_client(address: String) -> i32 {
+    info!("Running client connected to {}", address);
+    0
+}
+
+
 pub fn mig_demo() -> i32 {
     env_logger::init().unwrap();
 
@@ -12,12 +24,10 @@ pub fn mig_demo() -> i32 {
             0
         },
         Ok(args::MigCommand::Server { address }) => {
-            info!("Running server on {}", address);
-            0
+            run_server(address)
         },
         Ok(args::MigCommand::Client { address }) => {
-            info!("Running client connected to {}", address);
-            0
+            run_client(address)
         },
         Err(err) => {
             println!("{}", &err.message);
