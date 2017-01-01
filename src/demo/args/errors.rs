@@ -1,5 +1,6 @@
 use std;
 use std::fmt;
+use std::rc::Rc;
 
 use docopt;
 
@@ -8,6 +9,7 @@ use docopt;
 pub struct Error {
     pub message: String,
     pub exit_code: i32,
+    pub cause: Rc<docopt::Error>,
 }
 
 impl fmt::Display for Error {
@@ -22,15 +24,16 @@ impl std::error::Error for Error {
     }
 
     fn cause(&self) -> Option<&std::error::Error> {
-        None
+        Some(&*self.cause)
     }
 }
 
 impl From<docopt::Error> for Error {
     fn from(error: docopt::Error) -> Error {
-        match error {
-            docopt::Error::WithProgramUsage(err_box, message) => {
-                let exit_code = match *err_box {
+        let params = match error {
+            docopt::Error::WithProgramUsage(ref err_box, ref message) => {
+                let message = message.clone();
+                let exit_code = match **err_box {
                     docopt::Error::Usage(..) => panic!("Invalid usage string!"),
                     docopt::Error::Argv(..) => 1,
                     docopt::Error::NoMatch => 1,
@@ -39,9 +42,21 @@ impl From<docopt::Error> for Error {
                     docopt::Error::Help => 0,
                     docopt::Error::Version(..) => 0,
                 };
-                Error { message: message, exit_code: exit_code }
+
+                Some((message, exit_code))
             },
-            _ => {
+            _ => None,
+        };
+
+        match params {
+            Some((message, exit_code)) => {
+                Error {
+                    message: message,
+                    exit_code: exit_code,
+                    cause: Rc::new(error),
+                }
+            },
+            None => {
                 panic!("Unknown docopt error!");
             }
         }
