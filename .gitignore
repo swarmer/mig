@@ -4,3 +4,6 @@
 
 # libraries generally have Cargo.lock ignored
 Cargo.lock
+
+# Visual Studio Code
+.vscode/
