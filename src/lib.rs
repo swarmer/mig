@@ -10,6 +10,7 @@ extern crate rustc_serialize;
 #[cfg(test)]
 mod tests;
 pub mod demo;
+pub mod quic;
 
 
 // Version

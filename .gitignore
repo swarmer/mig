@@ -7,3 +7,6 @@ Cargo.lock
 
 # Visual Studio Code
 .vscode/
+
+# macOS crap
+.DS_Store
