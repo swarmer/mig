@@ -1,4 +1,6 @@
 // Dependencies
+extern crate byteorder;
+extern crate cast;
 extern crate docopt;
 extern crate env_logger;
 #[macro_use]
