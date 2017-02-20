@@ -3,29 +3,42 @@ use std::io;
 use byteorder::{BigEndian, WriteBytesExt};
 use cast;
 
+use quic::utils;
+
 
 pub const FRAME_FLAG_ACK: u8 = 0b01000000;
 
 #[derive(Clone, Copy, Debug)]
-pub struct AckBlock {
-    pub gap: Option<u8>,
-    pub block_length: u64,
+pub struct ExtraAckBlock {
+    pub gap: u8,
+    pub block_count: u64,
 }
 
 #[derive(Clone, Copy, Debug)]
-pub enum AckTimestamp {
-    Delta(u8),
-    FirstTimeStamp(u32),
-    TimeSincePrevious(u16),
+pub struct FirstAckTimestamp {
+    pub delta_la: u8,
+    pub delta_timestamp: u32,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct ExtraAckTimestamp {
+    pub delta_la: u8,
+    pub delta_timestamp: u16,
 }
 
 #[derive(Clone, Debug)]
 pub struct AckFrame {
-    pub num_timestamps: u8,
+    // header
     pub largest_acknowledged: u64,
     pub ack_delay: u16,
-    pub ack_blocks: Vec<AckBlock>,
-    pub timestamps: Vec<AckTimestamp>,
+
+    // ack block section
+    pub first_ack_block_count: u64,
+    pub extra_ack_blocks: Vec<ExtraAckBlock>,
+
+    // timestamp section
+    pub first_timestamp: Option<FirstAckTimestamp>,
+    pub extra_timestamps: Vec<ExtraAckTimestamp>,
 }
 
 impl AckFrame {
@@ -33,7 +46,7 @@ impl AckFrame {
         // construct the type octet
         let mut frame_type = FRAME_FLAG_ACK;
 
-        if self.ack_blocks.len() > 1 {
+        if !self.extra_ack_blocks.is_empty() {
             frame_type |= 0b00100000
         }
 
@@ -48,48 +61,46 @@ impl AckFrame {
         write.write_u8(frame_type)?;
 
         // other fields
-        if self.ack_blocks.len() > 1 {
+        if !self.extra_ack_blocks.is_empty() {
             write.write_u8(
-                cast::u8(self.ack_blocks.len())
-                .expect("Too many ack blocks, count has to fit in 8 bits")
+                cast::u8(self.extra_ack_blocks.len())
+                .expect("Too many additional ack blocks, count has to fit in 8 bits")
             )?;
         }
-        write.write_u8(self.num_timestamps)?;
-        write.write_uint::<BigEndian>(self.largest_acknowledged & 0x00FFFFFFFFFFFFFF, largest_ack_length)?;
+        write.write_u8(
+            cast::u8(
+                if self.first_timestamp.is_some() { 1 } else { 0 } +
+                self.extra_timestamps.len()
+            )
+            .expect("Too many timestamp blocks, count has to fit in 8 bits")
+        )?;
+        write.write_uint::<BigEndian>(
+            utils::truncate_u64(self.largest_acknowledged, largest_ack_length),
+            largest_ack_length,
+        )?;
         write.write_u16::<BigEndian>(self.ack_delay)?;
 
-        if self.ack_blocks.is_empty() {
-            panic!("The vector of ACK blocks cannot be empty");
-        }
-        match self.ack_blocks[0].gap {
-            Some(_) => panic!("First ack block cannot have a gap"),
-            _ => {},
-        }
-        write.write_uint::<BigEndian>(self.ack_blocks[0].block_length, ack_block_length)?;
-        for ack_block in &self.ack_blocks[1..] {
-            match ack_block.gap {
-                Some(gap) => {
-                    write.write_u8(gap)?;
-                },
-                None => panic!("Consequent ack blocks must have a gap"),
-            }
-
-            write.write_uint::<BigEndian>(ack_block.block_length, ack_block_length)?;
+        // ack block section
+        write.write_uint::<BigEndian>(self.first_ack_block_count, ack_block_length)?;
+        for ack_block in &self.extra_ack_blocks[..] {
+            write.write_u8(ack_block.gap)?;
+            write.write_uint::<BigEndian>(ack_block.block_count, ack_block_length)?;
         }
 
-        // TODO: checks
-        for timestamp in &self.timestamps {
-            match *timestamp {
-                AckTimestamp::Delta(delta) => {
-                    write.write_u8(delta)?;
-                },
-                AckTimestamp::FirstTimeStamp(ts) => {
-                    write.write_u32::<BigEndian>(ts)?;
-                },
-                AckTimestamp::TimeSincePrevious(delta_ts) => {
-                    write.write_u16::<BigEndian>(delta_ts)?;
-                },
-            }
+        // timestamp section
+        if self.first_timestamp.is_none() && !self.extra_timestamps.is_empty() {
+            panic!("Must have first timestamp before extra timestamps");
+        }
+        match self.first_timestamp {
+            Some(FirstAckTimestamp { delta_la, delta_timestamp }) => {
+                write.write_u8(delta_la)?;
+                write.write_u32::<BigEndian>(delta_timestamp)?;
+            },
+            None => {},
+        }
+        for timestamp in &self.extra_timestamps {
+            write.write_u8(timestamp.delta_la)?;
+            write.write_u16::<BigEndian>(timestamp.delta_timestamp)?;
         }
         
         Ok(())
