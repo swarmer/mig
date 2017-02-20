@@ -1,17 +1,18 @@
-mod ack;
-mod blocked;
-mod connection_close;
-mod goaway;
-mod padding;
-mod ping;
-mod rst_stream;
-mod stop_waiting;
-mod stream;
-mod window_update;
+pub mod ack;
+pub mod blocked;
+pub mod connection_close;
+pub mod goaway;
+pub mod padding;
+pub mod ping;
+pub mod rst_stream;
+pub mod stop_waiting;
+pub mod stream;
+pub mod window_update;
 
 use std::io;
 
 
+#[derive(Clone, Debug)]
 pub enum Frame {
     Ack(ack::AckFrame),
     Blocked(blocked::BlockedFrame),

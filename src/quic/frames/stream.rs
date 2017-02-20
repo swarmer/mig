@@ -6,11 +6,12 @@ use cast;
 
 pub const FRAME_FLAG_STREAM: u8 = 0b10000000;
 
+#[derive(Clone, Debug)]
 pub struct StreamFrame {
-    stream_id: u32,
-    offset: u64,
-    stream_data: Vec<u8>,
-    fin: bool,
+    pub stream_id: u32,
+    pub offset: u64,
+    pub stream_data: Vec<u8>,
+    pub fin: bool,
 }
 
 impl StreamFrame {

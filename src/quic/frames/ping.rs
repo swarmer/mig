@@ -5,6 +5,7 @@ use byteorder::{WriteBytesExt};
 
 pub const FRAME_PING: u8 = 0x07;
 
+#[derive(Clone, Copy, Debug)]
 pub struct PingFrame {}
 
 impl PingFrame {

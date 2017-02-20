@@ -6,6 +6,7 @@ use cast;
 
 pub const FRAME_GOAWAY: u8 = 0x03;
 
+#[derive(Clone, Debug)]
 pub struct GoAwayFrame {
     pub error_code: u32,
     pub last_good_stream_id: u32,

@@ -5,6 +5,7 @@ use byteorder::{WriteBytesExt};
 
 pub const FRAME_PADDING: u8 = 0x00;
 
+#[derive(Clone, Copy, Debug)]
 pub struct PaddingFrame {}
 
 impl PaddingFrame {

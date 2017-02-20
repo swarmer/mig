@@ -6,23 +6,26 @@ use cast;
 
 pub const FRAME_FLAG_ACK: u8 = 0b01000000;
 
+#[derive(Clone, Copy, Debug)]
 pub struct AckBlock {
     pub gap: Option<u8>,
     pub block_length: u64,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub enum AckTimestamp {
     Delta(u8),
     FirstTimeStamp(u32),
     TimeSincePrevious(u16),
 }
 
+#[derive(Clone, Debug)]
 pub struct AckFrame {
-    num_timestamps: u8,
-    largest_acknowledged: u64,
-    ack_delay: u16,
-    ack_blocks: Vec<AckBlock>,
-    timestamps: Vec<AckTimestamp>,
+    pub num_timestamps: u8,
+    pub largest_acknowledged: u64,
+    pub ack_delay: u16,
+    pub ack_blocks: Vec<AckBlock>,
+    pub timestamps: Vec<AckTimestamp>,
 }
 
 impl AckFrame {

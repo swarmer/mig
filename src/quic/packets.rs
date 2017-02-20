@@ -10,10 +10,12 @@ pub const FLAG_PACKET_NUMBER_SIZE_2: u8 = 0b00100000;
 pub const FLAG_MULTIPATH: u8 = 0b01000000;
 pub const FLAG_UNUSED: u8 = 0b10000000;
 
+#[derive(Clone, Debug)]
 pub struct Payload {
     pub frames: Vec<Frame>,
 }
 
+#[derive(Clone, Debug)]
 pub enum PacketBody {
     PublicReset,
     Regular {
@@ -26,6 +28,7 @@ pub enum PacketBody {
     },
 }
 
+#[derive(Clone, Debug)]
 pub struct Packet {
     pub flags: u8,
     pub connection_id: Option<u64>,
