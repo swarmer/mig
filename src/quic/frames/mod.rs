@@ -37,7 +37,7 @@ impl Frame {
             Frame::Ping(ref ping_frame) => ping_frame.encode(write),
             Frame::RstStream(ref rst_stream_frame) => rst_stream_frame.encode(write),
             Frame::StopWaiting(ref stop_waiting_frame) => stop_waiting_frame.encode(write, packet_number_size),
-            Frame::Stream(ref stream_frame) => stream_frame.encode(write),
+            Frame::Stream(ref stream_frame) => stream_frame.encode(write, false),
             Frame::WindowUpdate(ref window_update_frame) => window_update_frame.encode(write),
         }
     }

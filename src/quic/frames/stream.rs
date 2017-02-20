@@ -15,7 +15,7 @@ pub struct StreamFrame {
 }
 
 impl StreamFrame {
-    pub fn encode(&self, write: &mut io::Write) -> io::Result<()> {
+    pub fn encode(&self, write: &mut io::Write, last_frame: bool) -> io::Result<()> {
         // construct the type octet
         let mut frame_type = FRAME_FLAG_STREAM;
 
@@ -23,9 +23,7 @@ impl StreamFrame {
             frame_type |= 0b01000000
         }
 
-        // TODO: exclude data length sometimes?
-        let has_data_length = true;
-        if has_data_length {
+        if !last_frame {
             frame_type |= 0b00100000;
         }
 
@@ -40,7 +38,7 @@ impl StreamFrame {
         write.write_u8(frame_type)?;
 
         // other fields
-        if has_data_length {
+        if !last_frame {
             write.write_u16::<BigEndian>(
                 cast::u16(self.stream_data.len())
                 .expect("Stream data too big, size has to fit in 16 bits")

@@ -5,4 +5,5 @@ mod padding;
 mod ping;
 mod rst_stream;
 mod stop_waiting;
+mod stream;
 mod window_update;
