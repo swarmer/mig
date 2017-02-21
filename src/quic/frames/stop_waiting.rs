@@ -1,8 +1,9 @@
 use std::io;
 
-use byteorder::{BigEndian, WriteBytesExt};
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use quic::errors::Result;
+use quic::utils::map_unexpected_eof;
 
 
 pub const FRAME_STOP_WAITING: u8 = 0x06;
@@ -24,5 +25,17 @@ impl StopWaitingFrame {
         }
 
         Ok(())
+    }
+
+    pub fn decode(read: &mut io::Read, packet_number_size: usize) -> Result<StopWaitingFrame> {
+        if read.read_u8().map_err(map_unexpected_eof)? != FRAME_STOP_WAITING {
+            panic!("Incorrect frame's decode called!")
+        }
+
+        let least_acked_delta = 
+            read.read_uint::<BigEndian>(packet_number_size)
+            .map_err(map_unexpected_eof)?;
+
+        Ok(StopWaitingFrame { least_acked_delta: least_acked_delta })
     }
 }
