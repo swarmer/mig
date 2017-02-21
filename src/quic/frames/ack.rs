@@ -91,12 +91,9 @@ impl AckFrame {
         if self.first_timestamp.is_none() && !self.extra_timestamps.is_empty() {
             panic!("Must have first timestamp before extra timestamps");
         }
-        match self.first_timestamp {
-            Some(FirstAckTimestamp { delta_la, delta_timestamp }) => {
-                write.write_u8(delta_la)?;
-                write.write_u32::<BigEndian>(delta_timestamp)?;
-            },
-            None => {},
+        if let Some(FirstAckTimestamp { delta_la, delta_timestamp }) = self.first_timestamp {
+            write.write_u8(delta_la)?;
+            write.write_u32::<BigEndian>(delta_timestamp)?;
         }
         for timestamp in &self.extra_timestamps {
             write.write_u8(timestamp.delta_la)?;
