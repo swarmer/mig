@@ -31,11 +31,11 @@ impl StreamFrame {
         }
 
         // TODO: calculate this more intelligently
-        let offset_length = 8;
+        let offset_size = 8;
         frame_type |= 0b00011100;
 
         // TODO: calculate this more intelligently
-        let stream_id_length = 4;
+        let stream_id_size = 4;
         frame_type |= 0b00000011;
 
         write.write_u8(frame_type)?;
@@ -47,8 +47,8 @@ impl StreamFrame {
                 .expect("Stream data too big, size has to fit in 16 bits")
             )?;
         }
-        write.write_uint::<BigEndian>(self.stream_id as u64, stream_id_length)?;
-        write.write_uint::<BigEndian>(self.offset, offset_length)?;
+        write.write_uint::<BigEndian>(self.stream_id as u64, stream_id_size)?;
+        write.write_uint::<BigEndian>(self.offset, offset_size)?;
         write.write_all(&self.stream_data[..])?;
 
         Ok(())
@@ -65,12 +65,12 @@ impl StreamFrame {
 
         let last_frame = (frame_type & 0b00100000) == 0;
 
-        let offset_length = match (frame_type & 0b00011100) >> 2 {
+        let offset_size = match (frame_type & 0b00011100) >> 2 {
             0b000 => 0,
             bit_value => bit_value + 1,
         } as usize;
 
-        let stream_id_length = ((frame_type & 0b00000011) + 1) as usize;
+        let stream_id_size = ((frame_type & 0b00000011) + 1) as usize;
 
         // other fields
         let data_length = if !last_frame {
@@ -80,12 +80,12 @@ impl StreamFrame {
         };
 
         let stream_id = 
-            read.read_uint::<BigEndian>(stream_id_length)
+            read.read_uint::<BigEndian>(stream_id_size)
             .map_err(map_unexpected_eof)?
             as u32;
         
-        let offset = if offset_length != 0 {
-            read.read_uint::<BigEndian>(offset_length)
+        let offset = if offset_size != 0 {
+            read.read_uint::<BigEndian>(offset_size)
             .map_err(map_unexpected_eof)?
         } else {
             0
