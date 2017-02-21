@@ -1,8 +1,9 @@
 use std::io;
 
-use byteorder::{BigEndian, WriteBytesExt};
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use quic::errors::Result;
+use quic::utils::map_unexpected_eof;
 
 
 pub const FRAME_WINDOW_UPDATE: u8 = 0x04;
@@ -21,5 +22,23 @@ impl WindowUpdateFrame {
         write.write_u64::<BigEndian>(self.byte_offset)?;
 
         Ok(())
+    }
+
+    pub fn decode(read: &mut io::Read) -> Result<WindowUpdateFrame> {
+        if read.read_u8().map_err(map_unexpected_eof)? != FRAME_WINDOW_UPDATE {
+            panic!("Incorrect frame's decode called!")
+        }
+
+        let stream_id = 
+            read.read_u32::<BigEndian>()
+            .map_err(map_unexpected_eof)?;
+        let byte_offset = 
+            read.read_u64::<BigEndian>()
+            .map_err(map_unexpected_eof)?;
+
+        Ok(WindowUpdateFrame {
+            stream_id: stream_id,
+            byte_offset: byte_offset,
+        })
     }
 }
