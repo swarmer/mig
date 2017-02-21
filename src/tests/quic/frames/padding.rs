@@ -1,5 +1,6 @@
 use std::io;
 
+use quic::errors::Error;
 use quic::frames::padding;
 
 
@@ -14,4 +15,26 @@ fn test_encoding() {
             0x00,
         ]
     );
+}
+
+#[test]
+fn test_decoding() {
+    let mut read = io::Cursor::new(
+        vec![
+            0x00,
+        ]
+    );
+    let frame = padding::PaddingFrame::decode(&mut read).unwrap();
+    assert_eq!(
+        frame,
+        padding::PaddingFrame {}
+    );
+
+    let mut read = io::Cursor::new(
+        vec![]
+    );
+    match padding::PaddingFrame::decode(&mut read) {
+        Err(Error::Decoding(_)) => {},
+        _ => assert!(false, "Error expected"),
+    };
 }
