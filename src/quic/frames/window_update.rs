@@ -5,7 +5,7 @@ use byteorder::{BigEndian, WriteBytesExt};
 
 pub const FRAME_WINDOW_UPDATE: u8 = 0x04;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct WindowUpdateFrame {
     pub stream_id: u32,
     pub byte_offset: u64,

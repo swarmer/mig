@@ -8,25 +8,25 @@ use quic::utils;
 
 pub const FRAME_FLAG_ACK: u8 = 0b01000000;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct ExtraAckBlock {
     pub gap: u8,
     pub block_count: u64,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct FirstAckTimestamp {
     pub delta_la: u8,
     pub delta_timestamp: u32,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct ExtraAckTimestamp {
     pub delta_la: u8,
     pub delta_timestamp: u16,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct AckFrame {
     // header
     pub largest_acknowledged: u64,

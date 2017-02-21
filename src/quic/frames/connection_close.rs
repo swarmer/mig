@@ -6,7 +6,7 @@ use cast;
 
 pub const FRAME_CONNECTION_CLOSE: u8 = 0x02;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ConnectionCloseFrame {
     pub error_code: u32,
     pub reason_phrase: Option<String>,

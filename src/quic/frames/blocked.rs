@@ -5,7 +5,7 @@ use byteorder::{BigEndian, WriteBytesExt};
 
 pub const FRAME_BLOCKED: u8 = 0x05;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct BlockedFrame {
     pub stream_id: u32,
 }

@@ -10,7 +10,7 @@ pub const FLAG_PACKET_NUMBER_SIZE_2: u8 = 0b00100000;
 pub const FLAG_MULTIPATH: u8 = 0b01000000;
 pub const FLAG_UNUSED: u8 = 0b10000000;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Payload {
     pub frames: Vec<Frame>,
 }

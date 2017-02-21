@@ -6,7 +6,7 @@ use cast;
 
 pub const FRAME_FLAG_STREAM: u8 = 0b10000000;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct StreamFrame {
     pub stream_id: u32,
     pub offset: u64,
