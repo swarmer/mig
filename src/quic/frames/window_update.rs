@@ -2,6 +2,8 @@ use std::io;
 
 use byteorder::{BigEndian, WriteBytesExt};
 
+use quic::errors::Result;
+
 
 pub const FRAME_WINDOW_UPDATE: u8 = 0x04;
 
@@ -12,7 +14,7 @@ pub struct WindowUpdateFrame {
 }
 
 impl WindowUpdateFrame {
-    pub fn encode(&self, write: &mut io::Write) -> io::Result<()> {
+    pub fn encode(&self, write: &mut io::Write) -> Result<()> {
         write.write_u8(FRAME_WINDOW_UPDATE)?;
 
         write.write_u32::<BigEndian>(self.stream_id)?;

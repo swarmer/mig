@@ -3,6 +3,7 @@ use std::io;
 use byteorder::{BigEndian, WriteBytesExt};
 use cast;
 
+use quic::errors::Result;
 use quic::utils;
 
 
@@ -42,7 +43,7 @@ pub struct AckFrame {
 }
 
 impl AckFrame {
-    pub fn encode(&self, write: &mut io::Write) -> io::Result<()> {
+    pub fn encode(&self, write: &mut io::Write) -> Result<()> {
         // construct the type octet
         let mut frame_type = FRAME_FLAG_ACK;
 

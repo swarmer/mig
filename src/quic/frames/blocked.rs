@@ -2,6 +2,8 @@ use std::io;
 
 use byteorder::{BigEndian, WriteBytesExt};
 
+use quic::errors::Result;
+
 
 pub const FRAME_BLOCKED: u8 = 0x05;
 
@@ -11,7 +13,7 @@ pub struct BlockedFrame {
 }
 
 impl BlockedFrame {
-    pub fn encode(&self, write: &mut io::Write) -> io::Result<()> {
+    pub fn encode(&self, write: &mut io::Write) -> Result<()> {
         write.write_u8(FRAME_BLOCKED)?;
 
         write.write_u32::<BigEndian>(self.stream_id)?;

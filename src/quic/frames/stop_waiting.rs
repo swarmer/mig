@@ -2,6 +2,8 @@ use std::io;
 
 use byteorder::{BigEndian, WriteBytesExt};
 
+use quic::errors::Result;
+
 
 pub const FRAME_STOP_WAITING: u8 = 0x06;
 
@@ -11,7 +13,7 @@ pub struct StopWaitingFrame {
 }
 
 impl StopWaitingFrame {
-    pub fn encode(&self, write: &mut io::Write, packet_number_size: usize) -> io::Result<()> {
+    pub fn encode(&self, write: &mut io::Write, packet_number_size: usize) -> Result<()> {
         write.write_u8(FRAME_STOP_WAITING)?;
 
         match packet_number_size {

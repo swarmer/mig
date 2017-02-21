@@ -3,6 +3,8 @@ use std::io;
 use byteorder::{BigEndian, WriteBytesExt};
 use cast;
 
+use quic::errors::Result;
+
 
 pub const FRAME_CONNECTION_CLOSE: u8 = 0x02;
 
@@ -13,7 +15,7 @@ pub struct ConnectionCloseFrame {
 }
 
 impl ConnectionCloseFrame {
-    pub fn encode(&self, write: &mut io::Write) -> io::Result<()> {
+    pub fn encode(&self, write: &mut io::Write) -> Result<()> {
         write.write_u8(FRAME_CONNECTION_CLOSE)?;
 
         write.write_u32::<BigEndian>(self.error_code)?;

@@ -11,6 +11,8 @@ pub mod window_update;
 
 use std::io;
 
+use quic::errors::Result;
+
 
 #[derive(Clone, Debug)]
 pub enum Frame {
@@ -27,7 +29,7 @@ pub enum Frame {
 }
 
 impl Frame {
-    pub fn encode(&self, write: &mut io::Write, packet_number_size: usize) -> io::Result<()> {
+    pub fn encode(&self, write: &mut io::Write, packet_number_size: usize) -> Result<()> {
         match *self {
             Frame::Ack(ref ack_frame) => ack_frame.encode(write),
             Frame::Blocked(ref blocked_frame) => blocked_frame.encode(write),

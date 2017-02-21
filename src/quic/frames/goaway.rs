@@ -3,6 +3,8 @@ use std::io;
 use byteorder::{BigEndian, WriteBytesExt};
 use cast;
 
+use quic::errors::Result;
+
 
 pub const FRAME_GOAWAY: u8 = 0x03;
 
@@ -14,7 +16,7 @@ pub struct GoAwayFrame {
 }
 
 impl GoAwayFrame {
-    pub fn encode(&self, write: &mut io::Write) -> io::Result<()> {
+    pub fn encode(&self, write: &mut io::Write) -> Result<()> {
         write.write_u8(FRAME_GOAWAY)?;
 
         write.write_u32::<BigEndian>(self.error_code)?;

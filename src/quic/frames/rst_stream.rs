@@ -2,6 +2,8 @@ use std::io;
 
 use byteorder::{BigEndian, WriteBytesExt};
 
+use quic::errors::Result;
+
 
 pub const FRAME_RST_STREAM: u8 = 0x01;
 
@@ -13,7 +15,7 @@ pub struct RstStreamFrame {
 }
 
 impl RstStreamFrame {
-    pub fn encode(&self, write: &mut io::Write) -> io::Result<()> {
+    pub fn encode(&self, write: &mut io::Write) -> Result<()> {
         write.write_u8(FRAME_RST_STREAM)?;
 
         write.write_u32::<BigEndian>(self.error_code)?;

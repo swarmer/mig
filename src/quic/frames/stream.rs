@@ -3,6 +3,8 @@ use std::io;
 use byteorder::{BigEndian, WriteBytesExt};
 use cast;
 
+use quic::errors::Result;
+
 
 pub const FRAME_FLAG_STREAM: u8 = 0b10000000;
 
@@ -15,7 +17,7 @@ pub struct StreamFrame {
 }
 
 impl StreamFrame {
-    pub fn encode(&self, write: &mut io::Write, last_frame: bool) -> io::Result<()> {
+    pub fn encode(&self, write: &mut io::Write, last_frame: bool) -> Result<()> {
         // construct the type octet
         let mut frame_type = FRAME_FLAG_STREAM;
 
