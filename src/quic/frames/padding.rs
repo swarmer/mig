@@ -7,7 +7,7 @@ use quic::errors::Result;
 
 pub const FRAME_PADDING: u8 = 0x00;
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct PaddingFrame {}
 
 impl PaddingFrame {

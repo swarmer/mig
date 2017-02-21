@@ -8,7 +8,7 @@ use quic::errors::Result;
 
 pub const FRAME_FLAG_STREAM: u8 = 0b10000000;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct StreamFrame {
     pub stream_id: u32,
     pub offset: u64,

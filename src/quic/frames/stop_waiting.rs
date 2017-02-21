@@ -7,7 +7,7 @@ use quic::errors::Result;
 
 pub const FRAME_STOP_WAITING: u8 = 0x06;
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct StopWaitingFrame {
     pub least_acked_delta: u64,
 }

@@ -7,7 +7,7 @@ use quic::errors::Result;
 
 pub const FRAME_PING: u8 = 0x07;
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct PingFrame {}
 
 impl PingFrame {

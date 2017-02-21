@@ -14,7 +14,7 @@ use std::io;
 use quic::errors::Result;
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Frame {
     Ack(ack::AckFrame),
     Blocked(blocked::BlockedFrame),

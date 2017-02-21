@@ -7,7 +7,7 @@ use quic::errors::Result;
 
 pub const FRAME_RST_STREAM: u8 = 0x01;
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct RstStreamFrame {
     pub error_code: u32,
     pub stream_id: u32,

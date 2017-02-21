@@ -7,7 +7,7 @@ use quic::errors::Result;
 
 pub const FRAME_WINDOW_UPDATE: u8 = 0x04;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WindowUpdateFrame {
     pub stream_id: u32,
     pub byte_offset: u64,
