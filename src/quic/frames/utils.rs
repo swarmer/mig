@@ -8,15 +8,15 @@ use quic::utils::map_unexpected_eof;
 
 
 pub fn encode_reason_phrase(write: &mut io::Write, reason_phrase: &Option<String>) -> Result<()> {
-    match reason_phrase {
-        &Some(ref reason_string) => {
+    match *reason_phrase {
+        Some(ref reason_string) => {
             write.write_u16::<BigEndian>(
                 cast::u16(reason_string.len())
                 .expect("Reason phrase too long, length has to fit in 16 bits")
             )?;
             write.write_all(reason_string.as_bytes())?;
         },
-        &None => {
+        None => {
             write.write_u16::<BigEndian>(0)?;
         }
     }
