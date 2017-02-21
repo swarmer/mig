@@ -7,6 +7,7 @@ pub mod ping;
 pub mod rst_stream;
 pub mod stop_waiting;
 pub mod stream;
+mod utils;
 pub mod window_update;
 
 use std::io;
