@@ -1,9 +1,10 @@
 use std::io;
 
-use byteorder::{BigEndian, WriteBytesExt};
-use cast;
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use quic::errors::Result;
+use quic::utils::map_unexpected_eof;
+use super::utils::{encode_reason_phrase, decode_reason_phrase};
 
 
 pub const FRAME_GOAWAY: u8 = 0x03;
@@ -21,20 +22,28 @@ impl GoAwayFrame {
 
         write.write_u32::<BigEndian>(self.error_code)?;
         write.write_u32::<BigEndian>(self.last_good_stream_id)?;
-
-        match self.reason_phrase {
-            Some(ref reason_string) => {
-                write.write_u16::<BigEndian>(
-                    cast::u16(reason_string.len())
-                    .expect("Reason phrase too long, length has to fit in 16 bits")
-                )?;
-                write.write_all(reason_string.as_bytes())?;
-            },
-            None => {
-                write.write_u16::<BigEndian>(0)?;
-            }
-        }
+        encode_reason_phrase(write, &self.reason_phrase)?;
 
         Ok(())
+    }
+
+    pub fn decode(read: &mut io::Read) -> Result<GoAwayFrame> {
+        if read.read_u8().map_err(map_unexpected_eof)? != FRAME_GOAWAY {
+            panic!("Incorrect frame's decode called!")
+        }
+
+        let error_code = 
+            read.read_u32::<BigEndian>()
+            .map_err(map_unexpected_eof)?;
+        let last_good_stream_id = 
+            read.read_u32::<BigEndian>()
+            .map_err(map_unexpected_eof)?;
+        let reason_phrase = decode_reason_phrase(read)?;
+
+        Ok(GoAwayFrame {
+            error_code: error_code,
+            last_good_stream_id: last_good_stream_id,
+            reason_phrase: reason_phrase,
+        })
     }
 }
