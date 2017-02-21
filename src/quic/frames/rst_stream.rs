@@ -1,8 +1,9 @@
 use std::io;
 
-use byteorder::{BigEndian, WriteBytesExt};
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use quic::errors::Result;
+use quic::utils::map_unexpected_eof;
 
 
 pub const FRAME_RST_STREAM: u8 = 0x01;
@@ -23,5 +24,27 @@ impl RstStreamFrame {
         write.write_u64::<BigEndian>(self.final_offset)?;
 
         Ok(())
+    }
+
+    pub fn decode(read: &mut io::Read) -> Result<RstStreamFrame> {
+        if read.read_u8().map_err(map_unexpected_eof)? != FRAME_RST_STREAM {
+            panic!("Incorrect frame's decode called!")
+        }
+
+        let error_code = 
+            read.read_u32::<BigEndian>()
+            .map_err(map_unexpected_eof)?;
+        let stream_id = 
+            read.read_u32::<BigEndian>()
+            .map_err(map_unexpected_eof)?;
+        let final_offset = 
+            read.read_u64::<BigEndian>()
+            .map_err(map_unexpected_eof)?;
+
+        Ok(RstStreamFrame {
+            error_code: error_code,
+            stream_id: stream_id,
+            final_offset: final_offset,
+        })
     }
 }
