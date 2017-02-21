@@ -1,5 +1,6 @@
 use std::io;
 
+use quic::errors::Error;
 use quic::frames::ping;
 
 
@@ -14,4 +15,26 @@ fn test_encoding() {
             0x07,
         ]
     );
+}
+
+#[test]
+fn test_decoding() {
+    let mut read = io::Cursor::new(
+        vec![
+            0x07,
+        ]
+    );
+    let frame = ping::PingFrame::decode(&mut read).unwrap();
+    assert_eq!(
+        frame,
+        ping::PingFrame {}
+    );
+
+    let mut read = io::Cursor::new(
+        vec![]
+    );
+    match ping::PingFrame::decode(&mut read) {
+        Err(Error::Decoding(_)) => {},
+        _ => assert!(false, "Error expected"),
+    };
 }
