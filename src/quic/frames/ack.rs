@@ -108,9 +108,7 @@ impl AckFrame {
     pub fn decode(read: &mut io::Read) -> Result<AckFrame> {
         // extract type octet data
         let frame_type = read.read_u8().map_err(map_unexpected_eof)?;
-        if (frame_type & FRAME_MASK_ACK) != FRAME_FLAG_ACK {
-            panic!("Incorrect frame's decode called!")
-        }
+        assert!((frame_type & FRAME_MASK_ACK) == FRAME_FLAG_ACK);
 
         let has_extra_ack_blocks = (frame_type & 0b00100000) != 0;
 

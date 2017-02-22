@@ -19,9 +19,8 @@ impl PingFrame {
     }
 
     pub fn decode(read: &mut io::Read) -> Result<PingFrame> {
-        if read.read_u8().map_err(map_unexpected_eof)? != FRAME_PING {
-            panic!("Incorrect frame's decode called!")
-        }
+        let frame_type = read.read_u8().map_err(map_unexpected_eof)?;
+        assert!(frame_type == FRAME_PING);
 
         Ok(PingFrame {})
     }

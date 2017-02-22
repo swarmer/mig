@@ -28,9 +28,8 @@ impl GoAwayFrame {
     }
 
     pub fn decode(read: &mut io::Read) -> Result<GoAwayFrame> {
-        if read.read_u8().map_err(map_unexpected_eof)? != FRAME_GOAWAY {
-            panic!("Incorrect frame's decode called!")
-        }
+        let frame_type = read.read_u8().map_err(map_unexpected_eof)?;
+        assert!(frame_type == FRAME_GOAWAY);
 
         let error_code = 
             read.read_u32::<BigEndian>()

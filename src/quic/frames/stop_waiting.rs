@@ -28,9 +28,8 @@ impl StopWaitingFrame {
     }
 
     pub fn decode(read: &mut io::Read, packet_number_size: usize) -> Result<StopWaitingFrame> {
-        if read.read_u8().map_err(map_unexpected_eof)? != FRAME_STOP_WAITING {
-            panic!("Incorrect frame's decode called!")
-        }
+        let frame_type = read.read_u8().map_err(map_unexpected_eof)?;
+        assert!(frame_type == FRAME_STOP_WAITING);
 
         let least_acked_delta = 
             read.read_uint::<BigEndian>(packet_number_size)

@@ -23,9 +23,8 @@ impl BlockedFrame {
     }
 
     pub fn decode(read: &mut io::Read) -> Result<BlockedFrame> {
-        if read.read_u8().map_err(map_unexpected_eof)? != FRAME_BLOCKED {
-            panic!("Incorrect frame's decode called!")
-        }
+        let frame_type = read.read_u8().map_err(map_unexpected_eof)?;
+        assert!(frame_type == FRAME_BLOCKED);
 
         let stream_id = 
             read.read_u32::<BigEndian>()

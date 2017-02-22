@@ -19,9 +19,8 @@ impl PaddingFrame {
     }
 
     pub fn decode(read: &mut io::Read) -> Result<PaddingFrame> {
-        if read.read_u8().map_err(map_unexpected_eof)? != FRAME_PADDING {
-            panic!("Incorrect frame's decode called!")
-        }
+        let frame_type = read.read_u8().map_err(map_unexpected_eof)?;
+        assert!(frame_type == FRAME_PADDING);
 
         Ok(PaddingFrame {})
     }

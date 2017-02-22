@@ -27,9 +27,8 @@ impl RstStreamFrame {
     }
 
     pub fn decode(read: &mut io::Read) -> Result<RstStreamFrame> {
-        if read.read_u8().map_err(map_unexpected_eof)? != FRAME_RST_STREAM {
-            panic!("Incorrect frame's decode called!")
-        }
+        let frame_type = read.read_u8().map_err(map_unexpected_eof)?;
+        assert!(frame_type == FRAME_RST_STREAM);
 
         let error_code = 
             read.read_u32::<BigEndian>()

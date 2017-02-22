@@ -26,9 +26,8 @@ impl ConnectionCloseFrame {
     }
 
     pub fn decode(read: &mut io::Read) -> Result<ConnectionCloseFrame> {
-        if read.read_u8().map_err(map_unexpected_eof)? != FRAME_CONNECTION_CLOSE {
-            panic!("Incorrect frame's decode called!")
-        }
+        let frame_type = read.read_u8().map_err(map_unexpected_eof)?;
+        assert!(frame_type == FRAME_CONNECTION_CLOSE);
 
         let error_code = 
             read.read_u32::<BigEndian>()
