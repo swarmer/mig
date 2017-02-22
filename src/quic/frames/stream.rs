@@ -3,7 +3,7 @@ use std::io;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use cast;
 
-use quic::errors::Result;
+use quic::errors::{Error, Result};
 use quic::utils::map_unexpected_eof;
 
 
@@ -41,6 +41,8 @@ impl StreamFrame {
         write.write_u8(frame_type)?;
 
         // other fields
+        assert!(self.stream_data.len() != 0 || self.fin);
+
         if !last_frame {
             write.write_u16::<BigEndian>(
                 cast::u16(self.stream_data.len())
@@ -101,6 +103,10 @@ impl StreamFrame {
                 buffer
             },
         };
+
+        if stream_data.len() == 0 && !fin {
+            return Err(Error::Decoding(String::from("Must have either non-zero data length or the FIN bit set")));
+        }
 
         Ok(StreamFrame {
             stream_id: stream_id,
