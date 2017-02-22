@@ -327,4 +327,15 @@ fn test_decoding() {
         Err(Error::Decoding(_)) => {},
         _ => assert!(false, "Error expected"),
     };
+
+    let mut read = io::Cursor::new(
+        vec![
+            // invalid frame type
+            0x20,
+        ]
+    );
+    match frames::Frame::decode(&mut read, 6) {
+        Err(Error::Decoding(_)) => {},
+        _ => assert!(false, "Error expected"),
+    };
 }
