@@ -105,7 +105,11 @@ impl StreamFrame {
         };
 
         if stream_data.len() == 0 && !fin {
-            return Err(Error::Decoding(String::from("Must have either non-zero data length or the FIN bit set")));
+            return Err(
+                Error::Decoding(
+                    String::from("Must have either non-zero data length or the FIN bit set")
+                )
+            );
         }
 
         Ok(StreamFrame {
