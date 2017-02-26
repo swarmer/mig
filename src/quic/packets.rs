@@ -4,6 +4,7 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use quic::QUIC_VERSION;
 use quic::errors::{Error, Result};
+use quic::endpoint::EndpointType;
 use quic::utils::{map_unexpected_eof, truncate_u64};
 use super::frames::Frame;
 
@@ -12,10 +13,10 @@ pub const FLAG_VERSION: u8 = 0b00000001;
 pub const FLAG_PUBLIC_RESET: u8 = 0b00000010;
 pub const FLAG_KEY_PHASE: u8 = 0b00000100;
 pub const FLAG_CONNECTION_ID: u8 = 0b00001000;
-pub const FLAG_PACKET_NUMBER_SIZE_1: u8 = 0b00010000;
-pub const FLAG_PACKET_NUMBER_SIZE_2: u8 = 0b00100000;
 pub const FLAG_MULTIPATH: u8 = 0b01000000;
 pub const FLAG_UNUSED: u8 = 0b10000000;
+
+pub const MASK_PACKET_NUMBER_SIZE: u8 = 0b00110000;
 
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -185,7 +186,92 @@ impl Packet {
         Ok(())
     }
 
-    pub fn decode<R: io::Read + io::Seek>(read: &mut R) -> Result<Packet> {
-        unimplemented!()
+    pub fn decode<R: io::Read + io::Seek>(read: &mut R, endpoint_type: EndpointType) -> Result<Packet> {
+        let flags = read.read_u8().map_err(map_unexpected_eof)?;
+        let has_version = (flags & FLAG_VERSION) != 0;
+        let public_reset = (flags & FLAG_PUBLIC_RESET) != 0;
+        let key_phase = (flags & FLAG_KEY_PHASE) != 0;
+        let has_connection_id = (flags & FLAG_CONNECTION_ID) != 0;
+        let packet_number_size = match (flags & MASK_PACKET_NUMBER_SIZE) >> 4 {
+            0b00 => 1,
+            0b01 => 2,
+            0b10 => 4,
+            0b11 => 6,
+            _ => unreachable!(),
+        };
+        let multipath = (flags & FLAG_MULTIPATH) != 0;
+
+        let connection_id = if has_connection_id {
+            Some(read.read_u64::<BigEndian>().map_err(map_unexpected_eof)?)
+        } else {
+            None
+        };
+
+        let header = PacketHeader {
+            key_phase: key_phase,
+            packet_number_size: packet_number_size,
+            multipath: multipath,
+
+            connection_id: connection_id,
+        };
+
+        match (public_reset, has_version, endpoint_type) {
+            (true, _, _) => {
+                // public reset packet
+                Ok(Packet::PublicReset(PublicResetPacket { header: header }))
+            },
+            (false, false, _) | (false, true, EndpointType::Server) => {
+                // regular packet
+                // TODO: handle unknown versions
+                let version = if has_version {
+                    Some(read.read_u32::<BigEndian>().map_err(map_unexpected_eof)?)
+                } else {
+                    None
+                };
+
+                let packet_number =
+                    read.read_uint::<BigEndian>(packet_number_size)
+                    .map_err(map_unexpected_eof)?
+                    as u64;
+                
+                let payload = PacketPayload::decode(read, packet_number_size)?;
+
+                Ok(
+                    Packet::Regular(
+                        RegularPacket {
+                            header: header,
+
+                            version: version,
+                            packet_number: packet_number,
+                            payload: payload,
+                        }
+                    )
+                )
+            },
+            (false, true, EndpointType::Client) => {
+                // version negotiation packet
+                let mut versions = Vec::new();
+
+                loop {
+                    match read.read_u32::<BigEndian>().map_err(map_unexpected_eof) {
+                        Ok(version) => {
+                            versions.push(version);
+                        },
+                        Err(Error::Io(ref e)) if e.kind() == io::ErrorKind::UnexpectedEof => {
+                            break;
+                        },
+                        Err(e) => {
+                            return Err(e);
+                        }
+                    };
+                }
+
+                Ok(
+                    Packet::VersionNegotiation(
+                        VersionNegotiationPacket { header: header, versions: versions }
+                    )
+                )
+            },
+        }
     }
 }

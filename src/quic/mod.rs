@@ -1,5 +1,6 @@
 pub mod error_codes;
 pub mod errors;
+pub mod endpoint;
 pub mod frames;
 pub mod packets;
 
