@@ -1,5 +1,6 @@
 use std::io;
 
+use quic::QUIC_VERSION;
 use quic::errors::{Error, Result};
 use super::frames::Frame;
 
@@ -15,37 +16,27 @@ pub const FLAG_UNUSED: u8 = 0b10000000;
 
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct DecodedPayload {
+pub struct PacketPayload {
     // TODO: add TLS stuff one day
     pub frames: Vec<Frame>,
 }
 
-impl DecodedPayload {
-    pub fn to_encoded(&self, packet_number_size: usize) -> EncodedPayload {
+impl PacketPayload {
+    pub fn encode<W: io::Write>(&self, write: &mut W, packet_number_size: usize) -> Result<()> {
         assert!(!self.frames.is_empty());
 
-        let mut write = io::Cursor::new(Vec::new());
         for frame in &self.frames {
             // TODO: pass correct last_frame
-            frame.encode(&mut write, packet_number_size, false).unwrap();
+            frame.encode(write, packet_number_size, false)?;
         }
 
-        EncodedPayload { bytes: write.into_inner() }
+        Ok(())
     }
-}
 
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct EncodedPayload {
-    pub bytes: Vec<u8>,
-}
-
-impl EncodedPayload {
-    pub fn to_decoded(&self, packet_number_size: usize) -> Result<DecodedPayload> {
-        let mut read = io::Cursor::new(&self.bytes);
+    pub fn decode<R: io::Read + io::Seek>(read: &mut R, packet_number_size: usize) -> Result<PacketPayload> {
         let mut frames = Vec::new();
         loop {
-            match Frame::decode(&mut read, packet_number_size) {
+            match Frame::decode(read, packet_number_size) {
                 Ok(frame) => {
                     frames.push(frame);
                 },
@@ -62,7 +53,7 @@ impl EncodedPayload {
             return Err(Error::Decoding(String::from("At least one frame expected")));
         }
 
-        Ok(DecodedPayload { frames: frames })
+        Ok(PacketPayload { frames: frames })
     }
 }
 
@@ -71,7 +62,7 @@ impl EncodedPayload {
 pub enum PacketBody<P> {
     PublicReset,
     Regular {
-        version: u32,
+        version: Option<u32>,
         packet_number: u64,
         payload: P,
     },

@@ -1,3 +1,5 @@
+use std::io;
+
 use quic::errors::Error;
 use quic::frames;
 use quic::packets;
@@ -5,40 +7,40 @@ use quic::packets;
 
 #[test]
 fn test_payload_encoding() {
-    let decoded_payload = packets::DecodedPayload {
+    let payload = packets::PacketPayload {
         frames: vec![
             frames::Frame::Padding(frames::padding::PaddingFrame {}),
             frames::Frame::Ping(frames::ping::PingFrame {}),
         ],
     };
+    let mut write = io::Cursor::new(Vec::new());
+    payload.encode(&mut write, 6).unwrap();
     assert_eq!(
-        decoded_payload.to_encoded(6),
-        packets::EncodedPayload {
-            bytes: vec![
-                // padding frame
-                0x00,
-
-                // ping frame
-                0x07,
-            ]
-        }
-    );
-}
-
-#[test]
-fn test_payload_decoding() {
-    let encoded_payload = packets::EncodedPayload {
-        bytes: vec![
+        write.into_inner(),
+        vec![
             // padding frame
             0x00,
 
             // ping frame
             0x07,
-        ],
-    };
+        ]
+    );
+}
+
+#[test]
+fn test_payload_decoding() {
+    let mut read = io::Cursor::new(
+        vec![
+            // padding frame
+            0x00,
+
+            // ping frame
+            0x07,
+        ]
+    );
     assert_eq!(
-        encoded_payload.to_decoded(6).unwrap(),
-        packets::DecodedPayload {
+        packets::PacketPayload::decode(&mut read, 6).unwrap(),
+        packets::PacketPayload {
             frames: vec![
                 frames::Frame::Padding(frames::padding::PaddingFrame {}),
                 frames::Frame::Ping(frames::ping::PingFrame {}),
@@ -46,8 +48,8 @@ fn test_payload_decoding() {
         }
     );
 
-    let encoded_payload = packets::EncodedPayload {
-        bytes: vec![
+    let mut read = io::Cursor::new(
+        vec![
             // padding frame
             0x00,
 
@@ -55,17 +57,17 @@ fn test_payload_decoding() {
             0x04,
             0x00, 0x00, 0x00, 0x2A,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ],
-    };
-    match encoded_payload.to_decoded(6) {
+        ]
+    );
+    match packets::PacketPayload::decode(&mut read, 6) {
         Err(Error::Decoding(..)) => {},
         _ => assert!(false, "Decoding error expected"),
     };
 
-    let encoded_payload = packets::EncodedPayload {
-        bytes: vec![],
-    };
-    match encoded_payload.to_decoded(6) {
+    let mut read = io::Cursor::new(
+        vec![]
+    );
+    match packets::PacketPayload::decode(&mut read, 6) {
         Err(Error::Decoding(..)) => {},
         _ => assert!(false, "Decoding error expected"),
     };
