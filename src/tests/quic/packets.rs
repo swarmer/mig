@@ -72,3 +72,138 @@ fn test_payload_decoding() {
         _ => assert!(false, "Decoding error expected"),
     };
 }
+
+
+#[test]
+fn test_packet_encoding() {
+    let packet = packets::Packet::Regular(
+        packets::RegularPacket {
+            header: packets::PacketHeader {
+                key_phase: true,
+                packet_number_size: 4,
+                multipath: true,
+
+                connection_id: Some(0xABCDEF1234567890),
+            },
+
+            version: Some(0x12345678),
+            packet_number: 0x1234567890ABCDEF,
+            payload: packets::PacketPayload {
+                frames: vec![
+                    frames::Frame::Padding(frames::padding::PaddingFrame {}),
+                    frames::Frame::Ping(frames::ping::PingFrame {}),
+                ],
+            },
+        }
+    );
+    let mut write = io::Cursor::new(Vec::new());
+    packet.encode(&mut write).unwrap();
+    assert_eq!(
+        write.into_inner(),
+        vec![
+            // header
+            0x6D,
+            0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90,
+
+            // regular packet fields
+            0x12, 0x34, 0x56, 0x78,
+            0x90, 0xAB, 0xCD, 0xEF,
+
+            // payload
+            0x00,
+            0x07,
+        ]
+    );
+
+    let packet = packets::Packet::Regular(
+        packets::RegularPacket {
+            header: packets::PacketHeader {
+                key_phase: false,
+                packet_number_size: 4,
+                multipath: false,
+
+                connection_id: None,
+            },
+
+            version: None,
+            packet_number: 0x1234567890ABCDEF,
+            payload: packets::PacketPayload {
+                frames: vec![
+                    frames::Frame::Padding(frames::padding::PaddingFrame {}),
+                    frames::Frame::Ping(frames::ping::PingFrame {}),
+                ],
+            },
+        }
+    );
+    let mut write = io::Cursor::new(Vec::new());
+    packet.encode(&mut write).unwrap();
+    assert_eq!(
+        write.into_inner(),
+        vec![
+            // header
+            0x20,
+
+            // regular packet fields
+            0x90, 0xAB, 0xCD, 0xEF,
+
+            // payload
+            0x00,
+            0x07,
+        ]
+    );
+
+    let packet = packets::Packet::VersionNegotiation(
+        packets::VersionNegotiationPacket {
+            header: packets::PacketHeader {
+                key_phase: false,
+                packet_number_size: 1,
+                multipath: false,
+
+                connection_id: Some(0xABCDEF1234567890),
+            },
+
+            versions: vec![0x12345678, 0xABCDEF12],
+        }
+    );
+    let mut write = io::Cursor::new(Vec::new());
+    packet.encode(&mut write).unwrap();
+    assert_eq!(
+        write.into_inner(),
+        vec![
+            // header
+            0x09,
+            0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90,
+
+            // versions
+            0x12, 0x34, 0x56, 0x78,
+            0xAB, 0xCD, 0xEF, 0x12,
+        ]
+    );
+
+    let packet = packets::Packet::PublicReset(
+        packets::PublicResetPacket {
+            header: packets::PacketHeader {
+                key_phase: false,
+                packet_number_size: 1,
+                multipath: false,
+
+                connection_id: Some(0xABCDEF1234567890),
+            },
+        }
+    );
+    let mut write = io::Cursor::new(Vec::new());
+    packet.encode(&mut write).unwrap();
+    assert_eq!(
+        write.into_inner(),
+        vec![
+            // header
+            0x0A,
+            0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90,
+        ]
+    );
+}
+
+#[test]
+fn test_packet_decoding() {
+    assert!(false);
+}

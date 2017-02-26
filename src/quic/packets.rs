@@ -1,7 +1,10 @@
 use std::io;
 
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+
 use quic::QUIC_VERSION;
 use quic::errors::{Error, Result};
+use quic::utils::{map_unexpected_eof, truncate_u64};
 use super::frames::Frame;
 
 
@@ -58,29 +61,131 @@ impl PacketPayload {
 }
 
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum PacketBody {
-    PublicReset,
-    Regular {
-        version: Option<u32>,
-        packet_number: u64,
-        payload: PacketPayload,
-    },
-    VersionNegotiation {
-        versions: Vec<u32>,
-    },
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Packet {
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PacketHeader {
     // flags
-    pub has_version: bool,
-    pub public_reset: bool,
     pub key_phase: bool,
-    pub has_connection_id: bool,
     pub packet_number_size: usize,
     pub multipath: bool,
 
     pub connection_id: Option<u64>,
-    pub packet_body: PacketBody,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PublicResetPacket {
+    pub header: PacketHeader,
+
+    // TBD
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RegularPacket {
+    pub header: PacketHeader,
+
+    pub version: Option<u32>,
+    pub packet_number: u64,
+    pub payload: PacketPayload,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct VersionNegotiationPacket {
+    pub header: PacketHeader,
+
+    pub versions: Vec<u32>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Packet {
+    Regular(RegularPacket),
+    VersionNegotiation(VersionNegotiationPacket),
+    PublicReset(PublicResetPacket),
+}
+
+impl Packet {
+    fn encode_header<W>(write: &mut W, header: &PacketHeader, have_version: bool, public_reset: bool) -> Result<()>
+            where W: io::Write {
+        // flags word
+        let mut flags = 0b00000000;
+        if have_version {
+            flags |= 0b00000001;
+        }
+        if public_reset {
+            flags |= 0b00000010;
+        }
+        if header.key_phase {
+            flags |= 0b00000100;
+        }
+        if header.connection_id.is_some() {
+            flags |= 0b00001000;
+        }
+        flags |= match header.packet_number_size {
+            1 => 0b00000000,
+            2 => 0b00010000,
+            4 => 0b00100000,
+            6 => 0b00110000,
+            _ => panic!("Invalid packet number size"),
+        };
+        if header.multipath {
+            flags |= 0b01000000;
+        }
+        write.write_u8(flags)?;
+
+        // connection id
+        if let Some(connection_id) = header.connection_id {
+            write.write_u64::<BigEndian>(connection_id)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn encode<W: io::Write>(&self, write: &mut W) -> Result<()> {
+        match *self {
+            Packet::Regular(ref regular_packet) => {
+                Packet::encode_header(
+                    write,
+                    &regular_packet.header,
+                    regular_packet.version.is_some(),
+                    false,
+                )?;
+
+                if let Some(version) = regular_packet.version {
+                    write.write_u32::<BigEndian>(version)?;
+                }
+
+                let packet_number_size = regular_packet.header.packet_number_size;
+                write.write_uint::<BigEndian>(
+                    truncate_u64(regular_packet.packet_number, packet_number_size),
+                    packet_number_size,
+                )?;
+
+                regular_packet.payload.encode(write, packet_number_size)?;
+            },
+            Packet::VersionNegotiation(ref version_packet) => {
+                Packet::encode_header(
+                    write,
+                    &version_packet.header,
+                    true,
+                    false,
+                )?;
+
+                for &version in &version_packet.versions {
+                    write.write_u32::<BigEndian>(version)?;
+                }
+            },
+            Packet::PublicReset(ref public_reset_packet) => {
+                Packet::encode_header(
+                    write,
+                    &public_reset_packet.header,
+                    false,
+                    true,
+                )?;
+            },
+        };
+
+        Ok(())
+    }
+
+    pub fn decode<R: io::Read + io::Seek>(read: &mut R) -> Result<Packet> {
+        unimplemented!()
+    }
 }
