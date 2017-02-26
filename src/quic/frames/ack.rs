@@ -44,7 +44,7 @@ pub struct AckFrame {
 }
 
 impl AckFrame {
-    pub fn encode(&self, write: &mut io::Write) -> Result<()> {
+    pub fn encode<W: io::Write>(&self, write: &mut W) -> Result<()> {
         // construct the type octet
         let mut frame_type = FRAME_FLAG_ACK;
 
@@ -105,7 +105,7 @@ impl AckFrame {
         Ok(())
     }
 
-    pub fn decode(read: &mut io::Read) -> Result<AckFrame> {
+    pub fn decode<R: io::Read>(read: &mut R) -> Result<AckFrame> {
         // extract type octet data
         let frame_type = read.read_u8()?;
         assert!((frame_type & FRAME_MASK_ACK) == FRAME_FLAG_ACK);

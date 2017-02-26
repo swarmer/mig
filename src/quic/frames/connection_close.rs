@@ -16,7 +16,7 @@ pub struct ConnectionCloseFrame {
 }
 
 impl ConnectionCloseFrame {
-    pub fn encode(&self, write: &mut io::Write) -> Result<()> {
+    pub fn encode<W: io::Write>(&self, write: &mut W) -> Result<()> {
         write.write_u8(FRAME_CONNECTION_CLOSE)?;
 
         write.write_u32::<BigEndian>(self.error_code)?;
@@ -25,7 +25,7 @@ impl ConnectionCloseFrame {
         Ok(())
     }
 
-    pub fn decode(read: &mut io::Read) -> Result<ConnectionCloseFrame> {
+    pub fn decode<R: io::Read>(read: &mut R) -> Result<ConnectionCloseFrame> {
         let frame_type = read.read_u8()?;
         assert!(frame_type == FRAME_CONNECTION_CLOSE);
 

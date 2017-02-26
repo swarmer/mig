@@ -11,13 +11,13 @@ pub const FRAME_PING: u8 = 0x07;
 pub struct PingFrame {}
 
 impl PingFrame {
-    pub fn encode(&self, write: &mut io::Write) -> Result<()> {
+    pub fn encode<W: io::Write>(&self, write: &mut W) -> Result<()> {
         write.write_u8(FRAME_PING)?;
 
         Ok(())
     }
 
-    pub fn decode(read: &mut io::Read) -> Result<PingFrame> {
+    pub fn decode<R: io::Read>(read: &mut R) -> Result<PingFrame> {
         let frame_type = read.read_u8()?;
         assert!(frame_type == FRAME_PING);
 

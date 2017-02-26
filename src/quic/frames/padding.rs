@@ -11,13 +11,13 @@ pub const FRAME_PADDING: u8 = 0x00;
 pub struct PaddingFrame {}
 
 impl PaddingFrame {
-    pub fn encode(&self, write: &mut io::Write) -> Result<()> {
+    pub fn encode<W: io::Write>(&self, write: &mut W) -> Result<()> {
         write.write_u8(FRAME_PADDING)?;
 
         Ok(())
     }
 
-    pub fn decode(read: &mut io::Read) -> Result<PaddingFrame> {
+    pub fn decode<R: io::Read>(read: &mut R) -> Result<PaddingFrame> {
         let frame_type = read.read_u8()?;
         assert!(frame_type == FRAME_PADDING);
 

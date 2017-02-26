@@ -16,7 +16,7 @@ pub struct RstStreamFrame {
 }
 
 impl RstStreamFrame {
-    pub fn encode(&self, write: &mut io::Write) -> Result<()> {
+    pub fn encode<W: io::Write>(&self, write: &mut W) -> Result<()> {
         write.write_u8(FRAME_RST_STREAM)?;
 
         write.write_u32::<BigEndian>(self.error_code)?;
@@ -26,7 +26,7 @@ impl RstStreamFrame {
         Ok(())
     }
 
-    pub fn decode(read: &mut io::Read) -> Result<RstStreamFrame> {
+    pub fn decode<R: io::Read>(read: &mut R) -> Result<RstStreamFrame> {
         let frame_type = read.read_u8()?;
         assert!(frame_type == FRAME_RST_STREAM);
 

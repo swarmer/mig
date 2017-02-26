@@ -15,7 +15,7 @@ pub struct StopWaitingFrame {
 }
 
 impl StopWaitingFrame {
-    pub fn encode(&self, write: &mut io::Write, packet_number_size: usize) -> Result<()> {
+    pub fn encode<W: io::Write>(&self, write: &mut W, packet_number_size: usize) -> Result<()> {
         write.write_u8(FRAME_STOP_WAITING)?;
 
         check_packet_number_size(packet_number_size);
@@ -24,7 +24,7 @@ impl StopWaitingFrame {
         Ok(())
     }
 
-    pub fn decode(read: &mut io::Read, packet_number_size: usize) -> Result<StopWaitingFrame> {
+    pub fn decode<R: io::Read>(read: &mut R, packet_number_size: usize) -> Result<StopWaitingFrame> {
         let frame_type = read.read_u8()?;
         assert!(frame_type == FRAME_STOP_WAITING);
 

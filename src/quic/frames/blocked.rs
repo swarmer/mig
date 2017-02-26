@@ -14,7 +14,7 @@ pub struct BlockedFrame {
 }
 
 impl BlockedFrame {
-    pub fn encode(&self, write: &mut io::Write) -> Result<()> {
+    pub fn encode<W: io::Write>(&self, write: &mut W) -> Result<()> {
         write.write_u8(FRAME_BLOCKED)?;
 
         write.write_u32::<BigEndian>(self.stream_id)?;
@@ -22,7 +22,7 @@ impl BlockedFrame {
         Ok(())
     }
 
-    pub fn decode(read: &mut io::Read) -> Result<BlockedFrame> {
+    pub fn decode<R: io::Read>(read: &mut R) -> Result<BlockedFrame> {
         let frame_type = read.read_u8()?;
         assert!(frame_type == FRAME_BLOCKED);
 

@@ -33,7 +33,7 @@ pub enum Frame {
 }
 
 impl Frame {
-    pub fn encode(&self, write: &mut io::Write, packet_number_size: usize, last_frame: bool) -> Result<()> {
+    pub fn encode<W: io::Write>(&self, write: &mut W, packet_number_size: usize, last_frame: bool) -> Result<()> {
         check_packet_number_size(packet_number_size);
 
         match *self {

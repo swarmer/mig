@@ -15,7 +15,7 @@ pub struct WindowUpdateFrame {
 }
 
 impl WindowUpdateFrame {
-    pub fn encode(&self, write: &mut io::Write) -> Result<()> {
+    pub fn encode<W: io::Write>(&self, write: &mut W) -> Result<()> {
         write.write_u8(FRAME_WINDOW_UPDATE)?;
 
         write.write_u32::<BigEndian>(self.stream_id)?;
@@ -24,7 +24,7 @@ impl WindowUpdateFrame {
         Ok(())
     }
 
-    pub fn decode(read: &mut io::Read) -> Result<WindowUpdateFrame> {
+    pub fn decode<R: io::Read>(read: &mut R) -> Result<WindowUpdateFrame> {
         let frame_type = read.read_u8()?;
         assert!(frame_type == FRAME_WINDOW_UPDATE);
 

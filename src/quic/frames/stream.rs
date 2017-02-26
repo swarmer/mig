@@ -18,7 +18,7 @@ pub struct StreamFrame {
 }
 
 impl StreamFrame {
-    pub fn encode(&self, write: &mut io::Write, last_frame: bool) -> Result<()> {
+    pub fn encode<W: io::Write>(&self, write: &mut W, last_frame: bool) -> Result<()> {
         // construct the type octet
         let mut frame_type = FRAME_FLAG_STREAM;
 
@@ -56,7 +56,7 @@ impl StreamFrame {
         Ok(())
     }
 
-    pub fn decode(read: &mut io::Read) -> Result<StreamFrame> {
+    pub fn decode<R: io::Read>(read: &mut R) -> Result<StreamFrame> {
         // extract type octet data
         let frame_type = read.read_u8()?;
         assert!((frame_type & FRAME_FLAG_STREAM) != 0);
