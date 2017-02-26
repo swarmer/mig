@@ -59,12 +59,12 @@ impl PacketPayload {
 
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum PacketBody<P> {
+pub enum PacketBody {
     PublicReset,
     Regular {
         version: Option<u32>,
         packet_number: u64,
-        payload: P,
+        payload: PacketPayload,
     },
     VersionNegotiation {
         versions: Vec<u32>,
@@ -72,7 +72,7 @@ pub enum PacketBody<P> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Packet<P> {
+pub struct Packet {
     // flags
     pub has_version: bool,
     pub public_reset: bool,
@@ -82,5 +82,5 @@ pub struct Packet<P> {
     pub multipath: bool,
 
     pub connection_id: Option<u64>,
-    pub packet_body: PacketBody<P>,
+    pub packet_body: PacketBody,
 }
