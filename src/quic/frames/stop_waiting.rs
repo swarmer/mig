@@ -3,6 +3,7 @@ use std::io;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use quic::errors::Result;
+use quic::frames::utils::check_packet_number_size;
 use quic::utils::map_unexpected_eof;
 
 
@@ -17,12 +18,8 @@ impl StopWaitingFrame {
     pub fn encode(&self, write: &mut io::Write, packet_number_size: usize) -> Result<()> {
         write.write_u8(FRAME_STOP_WAITING)?;
 
-        match packet_number_size {
-            1 | 2 | 4 | 6 => {
-                write.write_uint::<BigEndian>(self.least_acked_delta, packet_number_size)?;
-            },
-            _ => panic!("Invalid packet number size: {}", packet_number_size),
-        }
+        check_packet_number_size(packet_number_size);
+        write.write_uint::<BigEndian>(self.least_acked_delta, packet_number_size)?;
 
         Ok(())
     }

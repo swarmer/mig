@@ -15,6 +15,7 @@ use std::io;
 use byteorder::{ReadBytesExt};
 
 use quic::errors::{Error, Result};
+use quic::frames::utils::check_packet_number_size;
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -33,6 +34,8 @@ pub enum Frame {
 
 impl Frame {
     pub fn encode(&self, write: &mut io::Write, packet_number_size: usize, last_frame: bool) -> Result<()> {
+        check_packet_number_size(packet_number_size);
+
         match *self {
             Frame::Ack(ref ack_frame) => ack_frame.encode(write),
             Frame::Blocked(ref blocked_frame) => blocked_frame.encode(write),
@@ -49,6 +52,8 @@ impl Frame {
 
     pub fn decode<R>(read: &mut R, packet_number_size: usize) -> Result<Frame>
             where R: io::Read + io::Seek {
+        check_packet_number_size(packet_number_size);
+
         let frame_type = read.read_u8()?;
         read.seek(io::SeekFrom::Current(-1)).unwrap();
 

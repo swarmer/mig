@@ -11,6 +11,7 @@ pub fn truncate_u64(number: u64, byte_count: usize) -> u64 {
     number % (1 << (byte_count * 8))
 }
 
+
 /// Wrap an UnexpectedEof io error into our own Decoding error
 pub fn map_unexpected_eof(io_error: io::Error) -> Error {
     if io_error.kind() == io::ErrorKind::UnexpectedEof {

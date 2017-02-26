@@ -39,3 +39,11 @@ pub fn decode_reason_phrase(read: &mut io::Read) -> Result<Option<String>> {
         Ok(None)
     }
 }
+
+
+pub fn check_packet_number_size(packet_number_size: usize) {
+    match packet_number_size {
+        1 | 2 | 4 | 6 => {},
+        _ => panic!("Invalid packet number size: {}", packet_number_size),
+    }
+}
