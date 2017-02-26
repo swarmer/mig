@@ -337,7 +337,7 @@ fn test_decoding() {
         ]
     );
     match frames::Frame::decode(&mut read, 6) {
-        Err(Error::Decoding(_)) => {},
+        Err(Error::Decoding(..)) => {},
         _ => assert!(false, "Error expected"),
     };
 
@@ -348,7 +348,7 @@ fn test_decoding() {
         ]
     );
     match frames::Frame::decode(&mut read, 6) {
-        Err(Error::Decoding(_)) => {},
+        Err(Error::Decoding(..)) => {},
         _ => assert!(false, "Error expected"),
     };
 }

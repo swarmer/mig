@@ -48,7 +48,7 @@ fn test_decoding() {
         ]
     );
     match window_update::WindowUpdateFrame::decode(&mut read) {
-        Err(Error::Decoding(_)) => {},
+        Err(Error::Decoding(..)) => {},
         _ => assert!(false, "Error expected"),
     };
 }

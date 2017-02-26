@@ -124,7 +124,7 @@ fn test_decoding() {
         ]
     );
     match stop_waiting::StopWaitingFrame::decode(&mut read, 6) {
-        Err(Error::Decoding(_)) => {},
+        Err(Error::Decoding(..)) => {},
         _ => assert!(false, "Error expected"),
     };
 }

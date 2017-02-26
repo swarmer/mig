@@ -53,7 +53,7 @@ fn test_decoding() {
         ]
     );
     match rst_stream::RstStreamFrame::decode(&mut read) {
-        Err(Error::Decoding(_)) => {},
+        Err(Error::Decoding(..)) => {},
         _ => assert!(false, "Error expected"),
     };
 }

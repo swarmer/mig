@@ -131,7 +131,7 @@ fn test_decoding() {
         ]
     );
     match stream::StreamFrame::decode(&mut read) {
-        Err(Error::Decoding(_)) => {},
+        Err(Error::Decoding(..)) => {},
         _ => assert!(false, "Error expected"),
     };
 
@@ -145,7 +145,7 @@ fn test_decoding() {
         ]
     );
     match stream::StreamFrame::decode(&mut read) {
-        Err(Error::Decoding(_)) => {},
+        Err(Error::Decoding(..)) => {},
         _ => assert!(false, "Error expected"),
     };
 }

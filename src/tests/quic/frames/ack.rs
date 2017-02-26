@@ -158,7 +158,7 @@ fn test_decoding() {
         ]
     );
     match ack::AckFrame::decode(&mut read) {
-        Err(Error::Decoding(_)) => {},
+        Err(Error::Decoding(..)) => {},
         _ => assert!(false, "Error expected"),
     };
 }

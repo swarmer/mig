@@ -82,7 +82,7 @@ fn test_decoding() {
         ]
     );
     match connection_close::ConnectionCloseFrame::decode(&mut read) {
-        Err(Error::Decoding(_)) => {},
+        Err(Error::Decoding(..)) => {},
         _ => assert!(false, "Error expected"),
     };
 }
