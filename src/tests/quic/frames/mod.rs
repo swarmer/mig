@@ -324,6 +324,19 @@ fn test_decoding() {
     );
 
     match frames::Frame::decode(&mut read, 6) {
+        Err(Error::Io(ref e)) if e.kind() == io::ErrorKind::UnexpectedEof => {},
+        _ => assert!(false, "UnexpectedEof expected"),
+    };
+
+    let mut read = io::Cursor::new(
+        vec![
+            // incomplete window update frame
+            0x04,
+            0x00, 0x00, 0x00, 0x2A,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ]
+    );
+    match frames::Frame::decode(&mut read, 6) {
         Err(Error::Decoding(_)) => {},
         _ => assert!(false, "Error expected"),
     };

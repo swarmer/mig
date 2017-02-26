@@ -3,7 +3,6 @@ use std::io;
 use byteorder::{ReadBytesExt, WriteBytesExt};
 
 use quic::errors::Result;
-use quic::utils::map_unexpected_eof;
 
 
 pub const FRAME_PADDING: u8 = 0x00;
@@ -19,7 +18,7 @@ impl PaddingFrame {
     }
 
     pub fn decode(read: &mut io::Read) -> Result<PaddingFrame> {
-        let frame_type = read.read_u8().map_err(map_unexpected_eof)?;
+        let frame_type = read.read_u8()?;
         assert!(frame_type == FRAME_PADDING);
 
         Ok(PaddingFrame {})

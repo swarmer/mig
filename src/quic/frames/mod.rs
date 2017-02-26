@@ -15,7 +15,6 @@ use std::io;
 use byteorder::{ReadBytesExt};
 
 use quic::errors::{Error, Result};
-use quic::utils::map_unexpected_eof;
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -50,7 +49,7 @@ impl Frame {
 
     pub fn decode<R>(read: &mut R, packet_number_size: usize) -> Result<Frame>
             where R: io::Read + io::Seek {
-        let frame_type = read.read_u8().map_err(map_unexpected_eof)?;
+        let frame_type = read.read_u8()?;
         read.seek(io::SeekFrom::Current(-1)).unwrap();
 
         match frame_type {

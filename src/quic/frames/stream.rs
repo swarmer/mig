@@ -58,7 +58,7 @@ impl StreamFrame {
 
     pub fn decode(read: &mut io::Read) -> Result<StreamFrame> {
         // extract type octet data
-        let frame_type = read.read_u8().map_err(map_unexpected_eof)?;
+        let frame_type = read.read_u8()?;
         assert!((frame_type & FRAME_FLAG_STREAM) != 0);
 
         let fin = (frame_type & 0b01000000) != 0;

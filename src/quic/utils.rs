@@ -13,7 +13,7 @@ pub fn truncate_u64(number: u64, byte_count: usize) -> u64 {
 
 /// Wrap an UnexpectedEof io error into our own Decoding error
 pub fn map_unexpected_eof(io_error: io::Error) -> Error {
-    if let io::ErrorKind::UnexpectedEof = io_error.kind() {
+    if io_error.kind() == io::ErrorKind::UnexpectedEof {
         Error::Decoding("Unexpected packet end when decoding a frame".to_string())
     } else {
         Error::Io(io_error)

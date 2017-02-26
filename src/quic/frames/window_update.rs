@@ -25,7 +25,7 @@ impl WindowUpdateFrame {
     }
 
     pub fn decode(read: &mut io::Read) -> Result<WindowUpdateFrame> {
-        let frame_type = read.read_u8().map_err(map_unexpected_eof)?;
+        let frame_type = read.read_u8()?;
         assert!(frame_type == FRAME_WINDOW_UPDATE);
 
         let stream_id = 

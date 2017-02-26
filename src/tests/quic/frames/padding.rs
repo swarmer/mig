@@ -34,7 +34,7 @@ fn test_decoding() {
         vec![]
     );
     match padding::PaddingFrame::decode(&mut read) {
-        Err(Error::Decoding(_)) => {},
-        _ => assert!(false, "Error expected"),
+        Err(Error::Io(ref e)) if e.kind() == io::ErrorKind::UnexpectedEof => {},
+        _ => assert!(false, "UnexpectedEof expected"),
     };
 }

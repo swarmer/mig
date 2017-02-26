@@ -26,7 +26,7 @@ impl ConnectionCloseFrame {
     }
 
     pub fn decode(read: &mut io::Read) -> Result<ConnectionCloseFrame> {
-        let frame_type = read.read_u8().map_err(map_unexpected_eof)?;
+        let frame_type = read.read_u8()?;
         assert!(frame_type == FRAME_CONNECTION_CLOSE);
 
         let error_code = 

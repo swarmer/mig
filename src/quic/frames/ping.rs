@@ -3,7 +3,6 @@ use std::io;
 use byteorder::{ReadBytesExt, WriteBytesExt};
 
 use quic::errors::Result;
-use quic::utils::map_unexpected_eof;
 
 
 pub const FRAME_PING: u8 = 0x07;
@@ -19,7 +18,7 @@ impl PingFrame {
     }
 
     pub fn decode(read: &mut io::Read) -> Result<PingFrame> {
-        let frame_type = read.read_u8().map_err(map_unexpected_eof)?;
+        let frame_type = read.read_u8()?;
         assert!(frame_type == FRAME_PING);
 
         Ok(PingFrame {})

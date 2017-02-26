@@ -28,7 +28,7 @@ impl StopWaitingFrame {
     }
 
     pub fn decode(read: &mut io::Read, packet_number_size: usize) -> Result<StopWaitingFrame> {
-        let frame_type = read.read_u8().map_err(map_unexpected_eof)?;
+        let frame_type = read.read_u8()?;
         assert!(frame_type == FRAME_STOP_WAITING);
 
         let least_acked_delta = 

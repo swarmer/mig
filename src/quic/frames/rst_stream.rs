@@ -27,7 +27,7 @@ impl RstStreamFrame {
     }
 
     pub fn decode(read: &mut io::Read) -> Result<RstStreamFrame> {
-        let frame_type = read.read_u8().map_err(map_unexpected_eof)?;
+        let frame_type = read.read_u8()?;
         assert!(frame_type == FRAME_RST_STREAM);
 
         let error_code = 
