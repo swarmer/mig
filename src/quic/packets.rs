@@ -14,7 +14,6 @@ pub const FLAG_PUBLIC_RESET: u8 = 0b00000010;
 pub const FLAG_KEY_PHASE: u8 = 0b00000100;
 pub const FLAG_CONNECTION_ID: u8 = 0b00001000;
 pub const FLAG_MULTIPATH: u8 = 0b01000000;
-pub const FLAG_UNUSED: u8 = 0b10000000;
 
 pub const MASK_PACKET_NUMBER_SIZE: u8 = 0b00110000;
 
@@ -108,26 +107,26 @@ impl Packet {
         // flags word
         let mut flags = 0b00000000;
         if have_version {
-            flags |= 0b00000001;
+            flags |= FLAG_VERSION;
         }
         if public_reset {
-            flags |= 0b00000010;
+            flags |= FLAG_PUBLIC_RESET;
         }
         if header.key_phase {
-            flags |= 0b00000100;
+            flags |= FLAG_KEY_PHASE;
         }
         if header.connection_id.is_some() {
-            flags |= 0b00001000;
+            flags |= FLAG_CONNECTION_ID;
         }
         flags |= match header.packet_number_size {
-            1 => 0b00000000,
-            2 => 0b00010000,
-            4 => 0b00100000,
-            6 => 0b00110000,
+            1 => 0b00 << 4,
+            2 => 0b01 << 4,
+            4 => 0b10 << 4,
+            6 => 0b11 << 4,
             _ => panic!("Invalid packet number size"),
         };
         if header.multipath {
-            flags |= 0b01000000;
+            flags |= FLAG_MULTIPATH;
         }
         write.write_u8(flags)?;
 
