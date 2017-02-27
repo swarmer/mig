@@ -8,4 +8,4 @@ mod utils;
 
 
 // temporary implementation-specific version
-const QUIC_VERSION: u32 = 0xFAB00001;
+pub const QUIC_VERSION: u32 = 0xFAB00001;

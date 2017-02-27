@@ -7,6 +7,7 @@ use std::io;
 pub enum Error {
     Io(io::Error),
     Decoding(String),
+    UnsupportedVersion(u32),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -16,6 +17,9 @@ impl fmt::Display for Error {
         match *self {
             Error::Io(ref io_error) => io_error.fmt(f),
             Error::Decoding(ref message) => message.fmt(f),
+            Error::UnsupportedVersion(version) => {
+                write!(f, "Unsupported version: {}", version)
+            },
         }
     }
 }
@@ -25,13 +29,15 @@ impl std::error::Error for Error {
         match *self {
             Error::Io(ref io_error) => io_error.description(),
             Error::Decoding(ref message) => message,
+            Error::UnsupportedVersion(..) => "Unsupported version",
         }
     }
 
     fn cause(&self) -> Option<&std::error::Error> {
         match *self {
-            Error::Io(ref io_error) => io_error.cause(),
+            Error::Io(ref io_error) => Some(io_error),
             Error::Decoding(..) => None,
+            Error::UnsupportedVersion(..) => None,
         }
     }
 }

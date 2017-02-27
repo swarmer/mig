@@ -1,5 +1,6 @@
 use std::io;
 
+use quic::QUIC_VERSION;
 use quic::endpoint::EndpointType;
 use quic::errors::Error;
 use quic::frames;
@@ -213,7 +214,7 @@ fn test_packet_decoding() {
             0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90,
 
             // regular packet fields
-            0x12, 0x34, 0x56, 0x78,
+            0xFA, 0xB0, 0x00, 0x01,
             0x90, 0xAB, 0xCD, 0xEF,
 
             // payload
@@ -233,7 +234,7 @@ fn test_packet_decoding() {
                     connection_id: Some(0xABCDEF1234567890),
                 },
 
-                version: Some(0x12345678),
+                version: Some(QUIC_VERSION),
                 packet_number: 0x0000000090ABCDEF,
                 payload: packets::PacketPayload {
                     frames: vec![
@@ -335,6 +336,26 @@ fn test_packet_decoding() {
     let mut read = io::Cursor::new(
         vec![
             // header
+            0x6D,
+            0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90,
+
+            // regular packet fields
+            0xFA, 0xC0, 0x00, 0x01,
+            0x90, 0xAB, 0xCD, 0xEF,
+
+            // payload
+            0x00,
+            0x07,
+        ]
+    );
+    match packets::Packet::decode(&mut read, EndpointType::Server) {
+        Err(Error::UnsupportedVersion(..)) => {},
+        _ => assert!(false, "UnsupportedVersion error expected"),
+    };
+
+    let mut read = io::Cursor::new(
+        vec![
+            // header
             0x09,
             0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90,
 
@@ -344,7 +365,7 @@ fn test_packet_decoding() {
         ]
     );
     match packets::Packet::decode(&mut read, EndpointType::Server) {
-        Err(Error::Decoding(..)) => {},
+        Err(Error::UnsupportedVersion(..)) => {},
         _ => assert!(false, "Decoding error expected"),
     };
 
@@ -359,7 +380,7 @@ fn test_packet_decoding() {
         ]
     );
     match packets::Packet::decode(&mut read, EndpointType::Server) {
-        Err(Error::Decoding(..)) => {},
+        Err(Error::UnsupportedVersion(..)) => {},
         _ => assert!(false, "Decoding error expected"),
     };
 

@@ -221,9 +221,13 @@ impl Packet {
             },
             (false, false, _) | (false, true, EndpointType::Server) => {
                 // regular packet
-                // TODO: handle unknown versions
                 let version = if has_version {
-                    Some(read.read_u32::<BigEndian>().map_err(map_unexpected_eof)?)
+                    let version = read.read_u32::<BigEndian>().map_err(map_unexpected_eof)?;
+                    if version != QUIC_VERSION {
+                        return Err(Error::UnsupportedVersion(version));
+                    }
+
+                    Some(version)
                 } else {
                     None
                 };
