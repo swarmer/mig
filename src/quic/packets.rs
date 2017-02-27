@@ -253,15 +253,15 @@ impl Packet {
                 let mut versions = Vec::new();
 
                 loop {
-                    match read.read_u32::<BigEndian>().map_err(map_unexpected_eof) {
+                    match read.read_u32::<BigEndian>() {
                         Ok(version) => {
                             versions.push(version);
                         },
-                        Err(Error::Io(ref e)) if e.kind() == io::ErrorKind::UnexpectedEof => {
+                        Err(ref e) if e.kind() == io::ErrorKind::UnexpectedEof => {
                             break;
                         },
                         Err(e) => {
-                            return Err(e);
+                            return Err(Error::from(e));
                         }
                     };
                 }
