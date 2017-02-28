@@ -1,4 +1,5 @@
 mod args;
+mod benchmarks;
 
 use std;
 use std::net::UdpSocket;
@@ -73,6 +74,10 @@ pub fn mig_demo() -> i32 {
     match args::parse_command() {
         Ok(args::MigCommand::Version) => {
             println!("{}", ::VERSION);
+            0
+        },
+        Ok(args::MigCommand::Bench) => {
+            benchmarks::run_all_benchmarks();
             0
         },
         Ok(args::MigCommand::Server { address }) => {

@@ -9,6 +9,7 @@ mig demo
 Usage:
   mig server <address>
   mig client <address>
+  mig bench
   mig --version
   mig (-h | --help)
 
@@ -23,6 +24,7 @@ Options:
 struct DocoptMigArgs {
     cmd_server: bool,
     cmd_client: bool,
+    cmd_bench: bool,
     arg_address: String,
     flag_version: bool,
 }
@@ -31,6 +33,7 @@ struct DocoptMigArgs {
 #[derive(Debug, Clone)]
 pub enum MigCommand {
     Version,
+    Bench,
     Server { address: String },
     Client { address: String },
 }
@@ -44,6 +47,8 @@ pub fn parse_command() -> errors::Result<MigCommand> {
     match docopt_args {
         DocoptMigArgs { flag_version: true, .. } =>
             Ok(MigCommand::Version),
+        DocoptMigArgs { cmd_bench: true, .. } =>
+            Ok(MigCommand::Bench),
         DocoptMigArgs { cmd_server: true, arg_address: address, .. } =>
             Ok(MigCommand::Server { address: address }),
         DocoptMigArgs { cmd_client: true, arg_address: address, .. } =>
