@@ -54,7 +54,7 @@ pub fn run_benchmark() {
 
     let start = time::Instant::now();
     for _ in 0..ITERATION_COUNT {
-        let _ = packets::Packet::decode(&mut read, EndpointType::Server).unwrap();
+        packets::Packet::decode(&mut read, EndpointType::Server).unwrap();
 
         bytes_total += read.position();
         read.seek(io::SeekFrom::Start(0)).unwrap();
