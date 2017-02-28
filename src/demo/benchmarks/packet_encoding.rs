@@ -11,7 +11,7 @@ const STREAM_DATA_SIZE: usize = 1000;
 
 
 pub fn run_benchmark() {
-    info!("packet_encoding: started...");
+    println!("packet_encoding: started...");
 
     let mut write = io::Cursor::new(Vec::with_capacity(2 * STREAM_DATA_SIZE));
     let stream_data = vec![42; STREAM_DATA_SIZE];
@@ -51,7 +51,7 @@ pub fn run_benchmark() {
     }
     let elapsed = start.elapsed();
 
-    info!(
+    println!(
         "packet_encoding: encoded {} packets ({} bytes total) in {}",
         ITERATION_COUNT,
         bytes_total,

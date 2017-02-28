@@ -5,7 +5,7 @@ mod packet_encoding;
 
 
 pub fn run_all_benchmarks() {
-    info!("Running all benchmarks");
+    println!("Running all benchmarks");
 
     packet_decoding::run_benchmark();
     packet_encoding::run_benchmark();

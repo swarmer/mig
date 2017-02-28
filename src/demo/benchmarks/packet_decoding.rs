@@ -47,7 +47,7 @@ fn get_sample_packet_bytes() -> Vec<u8> {
 }
 
 pub fn run_benchmark() {
-    info!("packet_decoding: started...");
+    println!("packet_decoding: started...");
 
     let mut read = io::Cursor::new(get_sample_packet_bytes());
     let mut bytes_total = 0;
@@ -61,7 +61,7 @@ pub fn run_benchmark() {
     }
     let elapsed = start.elapsed();
 
-    info!(
+    println!(
         "packet_decoding: decoded {} packets ({} bytes total) in {}",
         ITERATION_COUNT,
         bytes_total,
