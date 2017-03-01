@@ -7,7 +7,12 @@ use quic::errors::{Error, Result};
 use quic::utils::map_unexpected_eof;
 
 
-pub const FRAME_FLAG_STREAM: u8 = 0b10000000;
+pub const FLAG_STREAM: u8 = 0b10000000;
+pub const FLAG_FIN: u8 = 0b01000000;
+pub const FLAG_DATA_LENGTH_PRESENT: u8 = 0b00100000;
+
+pub const MASK_OFFSET_SIZE: u8 = 0b00011100;
+pub const MASK_STREAM_ID_SIZE: u8 = 0b00000011;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct StreamFrame {
@@ -20,14 +25,14 @@ pub struct StreamFrame {
 impl StreamFrame {
     pub fn encode<W: io::Write>(&self, write: &mut W, last_frame: bool) -> Result<()> {
         // construct the type octet
-        let mut frame_type = FRAME_FLAG_STREAM;
+        let mut frame_type = FLAG_STREAM;
 
         if self.fin {
-            frame_type |= 0b01000000
+            frame_type |= FLAG_FIN
         }
 
         if !last_frame {
-            frame_type |= 0b00100000;
+            frame_type |= FLAG_DATA_LENGTH_PRESENT;
         }
 
         // TODO: calculate this more intelligently
@@ -59,18 +64,18 @@ impl StreamFrame {
     pub fn decode<R: io::Read>(read: &mut R) -> Result<StreamFrame> {
         // extract type octet data
         let frame_type = read.read_u8()?;
-        assert!((frame_type & FRAME_FLAG_STREAM) != 0);
+        assert!((frame_type & FLAG_STREAM) != 0);
 
-        let fin = (frame_type & 0b01000000) != 0;
+        let fin = (frame_type & FLAG_FIN) != 0;
 
-        let last_frame = (frame_type & 0b00100000) == 0;
+        let last_frame = (frame_type & FLAG_DATA_LENGTH_PRESENT) == 0;
 
-        let offset_size = match (frame_type & 0b00011100) >> 2 {
+        let offset_size = match (frame_type & MASK_OFFSET_SIZE) >> 2 {
             0b000 => 0,
             bit_value => bit_value + 1,
         } as usize;
 
-        let stream_id_size = ((frame_type & 0b00000011) + 1) as usize;
+        let stream_id_size = ((frame_type & MASK_STREAM_ID_SIZE) + 1) as usize;
 
         // other fields
         let data_length = if !last_frame {

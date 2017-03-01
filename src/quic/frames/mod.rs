@@ -75,9 +75,9 @@ impl Frame {
             window_update::FRAME_WINDOW_UPDATE =>
                 Ok(Frame::WindowUpdate(window_update::WindowUpdateFrame::decode(read)?)),
             other_type => {
-                if (other_type & ack::FRAME_MASK_ACK) == ack::FRAME_FLAG_ACK {
+                if (other_type & ack::MASK_ACK) == ack::FLAG_ACK {
                     Ok(Frame::Ack(ack::AckFrame::decode(read)?))
-                } else if (other_type & stream::FRAME_FLAG_STREAM) != 0 {
+                } else if (other_type & stream::FLAG_STREAM) != 0 {
                     Ok(Frame::Stream(stream::StreamFrame::decode(read)?))
                 } else {
                     Err(Error::Decoding(String::from("Invalid frame type")))

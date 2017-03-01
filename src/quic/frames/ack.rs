@@ -7,8 +7,12 @@ use quic::errors::Result;
 use quic::utils::{map_unexpected_eof, truncate_u64};
 
 
-pub const FRAME_FLAG_ACK: u8 = 0b01000000;
-pub const FRAME_MASK_ACK: u8 = 0b11000000;
+pub const FLAG_ACK: u8 = 0b01000000;
+pub const FLAG_EXTRA_ACK_BLOCKS: u8 = 0b00100000;
+
+pub const MASK_ACK: u8 = 0b11000000;
+pub const MASK_LARGEST_ACK_SIZE: u8 = 0b00001100;
+pub const MASK_ACK_BLOCK_SIZE: u8 = 0b00000011;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct ExtraAckBlock {
@@ -46,10 +50,10 @@ pub struct AckFrame {
 impl AckFrame {
     pub fn encode<W: io::Write>(&self, write: &mut W) -> Result<()> {
         // construct the type octet
-        let mut frame_type = FRAME_FLAG_ACK;
+        let mut frame_type = FLAG_ACK;
 
         if !self.extra_ack_blocks.is_empty() {
-            frame_type |= 0b00100000
+            frame_type |= FLAG_EXTRA_ACK_BLOCKS;
         }
 
         // TODO: calculate this more intelligently
@@ -108,11 +112,11 @@ impl AckFrame {
     pub fn decode<R: io::Read>(read: &mut R) -> Result<AckFrame> {
         // extract type octet data
         let frame_type = read.read_u8()?;
-        assert!((frame_type & FRAME_MASK_ACK) == FRAME_FLAG_ACK);
+        assert!((frame_type & MASK_ACK) == FLAG_ACK);
 
-        let has_extra_ack_blocks = (frame_type & 0b00100000) != 0;
+        let has_extra_ack_blocks = (frame_type & FLAG_EXTRA_ACK_BLOCKS) != 0;
 
-        let largest_ack_size = match (frame_type & 0b00001100) >> 2 {
+        let largest_ack_size = match (frame_type & MASK_LARGEST_ACK_SIZE) >> 2 {
             0b00 => 1,
             0b01 => 2,
             0b10 => 4,
@@ -120,7 +124,7 @@ impl AckFrame {
             _ => unreachable!(),
         };
 
-        let ack_block_size = match frame_type & 0b00000011 {
+        let ack_block_size = match frame_type & MASK_ACK_BLOCK_SIZE {
             0b00 => 1,
             0b01 => 2,
             0b10 => 4,
