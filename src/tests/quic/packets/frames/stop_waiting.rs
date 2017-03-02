@@ -1,7 +1,7 @@
 use std::io;
 
 use quic::errors::Error;
-use quic::frames::stop_waiting;
+use quic::packets::frames::stop_waiting;
 
 
 #[test]

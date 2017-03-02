@@ -15,7 +15,7 @@ use std::io;
 use byteorder::{ReadBytesExt};
 
 use quic::errors::{Error, Result};
-use quic::frames::utils::check_packet_number_size;
+use self::utils::check_packet_number_size;
 
 
 #[derive(Clone, Debug, PartialEq)]

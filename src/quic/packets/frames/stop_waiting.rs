@@ -3,8 +3,8 @@ use std::io;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use quic::errors::Result;
-use quic::frames::utils::check_packet_number_size;
-use quic::utils::map_unexpected_eof;
+use super::utils::check_packet_number_size;
+use quic::packets::utils::map_unexpected_eof;
 
 
 pub const FRAME_STOP_WAITING: u8 = 0x06;

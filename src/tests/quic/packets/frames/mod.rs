@@ -12,7 +12,7 @@ mod window_update;
 use std::io;
 
 use quic::errors::Error;
-use quic::frames;
+use quic::packets::frames;
 
 
 #[test]

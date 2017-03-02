@@ -1,7 +1,7 @@
 use std::io;
 
 use quic::errors::Error;
-use quic::frames::stream;
+use quic::packets::frames::stream;
 
 
 #[test]

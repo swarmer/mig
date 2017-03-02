@@ -4,7 +4,7 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use cast;
 
 use quic::errors::{Error, Result};
-use quic::utils::map_unexpected_eof;
+use quic::packets::utils::map_unexpected_eof;
 
 
 pub const FLAG_STREAM: u8 = 0b10000000;

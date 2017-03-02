@@ -4,7 +4,7 @@ use std::time;
 
 use quic::QUIC_VERSION;
 use quic::endpoint::EndpointRole;
-use quic::frames;
+use quic::packets::frames;
 use quic::packets;
 use super::format_duration;
 

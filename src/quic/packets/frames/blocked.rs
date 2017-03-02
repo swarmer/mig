@@ -3,7 +3,7 @@ use std::io;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use quic::errors::Result;
-use quic::utils::map_unexpected_eof;
+use quic::packets::utils::map_unexpected_eof;
 
 
 pub const FRAME_BLOCKED: u8 = 0x05;

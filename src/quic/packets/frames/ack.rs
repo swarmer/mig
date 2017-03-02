@@ -4,7 +4,7 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use cast;
 
 use quic::errors::Result;
-use quic::utils::{map_unexpected_eof, truncate_u64};
+use quic::packets::utils::{map_unexpected_eof, truncate_u64};
 
 
 pub const FLAG_ACK: u8 = 0b01000000;

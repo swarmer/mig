@@ -1,7 +1,7 @@
 use std::io;
 
 use quic::errors::Error;
-use quic::frames::blocked;
+use quic::packets::frames::blocked;
 
 
 #[test]

@@ -1,3 +1,6 @@
+pub mod frames;
+mod utils;
+
 use std::io;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
@@ -5,8 +8,8 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use quic::QUIC_VERSION;
 use quic::errors::{Error, Result};
 use quic::endpoint::EndpointRole;
-use quic::utils::{map_unexpected_eof, truncate_u64};
-use super::frames::Frame;
+use self::utils::{map_unexpected_eof, truncate_u64};
+use self::frames::Frame;
 
 
 pub const FLAG_VERSION: u8 = 0b00000001;

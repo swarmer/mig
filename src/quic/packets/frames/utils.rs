@@ -4,7 +4,7 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use cast;
 
 use quic::errors::Result;
-use quic::utils::map_unexpected_eof;
+use quic::packets::utils::map_unexpected_eof;
 
 
 pub fn encode_reason_phrase(write: &mut io::Write, reason_phrase: &Option<String>) -> Result<()> {

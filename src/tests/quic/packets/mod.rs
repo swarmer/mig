@@ -1,9 +1,11 @@
+mod frames;
+
 use std::io;
 
 use quic::QUIC_VERSION;
 use quic::endpoint::EndpointRole;
 use quic::errors::Error;
-use quic::frames;
+use quic::packets::frames::{Frame, padding, ping};
 use quic::packets;
 
 
@@ -11,8 +13,8 @@ use quic::packets;
 fn test_payload_encoding() {
     let payload = packets::PacketPayload {
         frames: vec![
-            frames::Frame::Padding(frames::padding::PaddingFrame {}),
-            frames::Frame::Ping(frames::ping::PingFrame {}),
+            Frame::Padding(padding::PaddingFrame {}),
+            Frame::Ping(ping::PingFrame {}),
         ],
     };
     let mut write = io::Cursor::new(Vec::new());
@@ -44,8 +46,8 @@ fn test_payload_decoding() {
         packets::PacketPayload::decode(&mut read, 6).unwrap(),
         packets::PacketPayload {
             frames: vec![
-                frames::Frame::Padding(frames::padding::PaddingFrame {}),
-                frames::Frame::Ping(frames::ping::PingFrame {}),
+                Frame::Padding(padding::PaddingFrame {}),
+                Frame::Ping(ping::PingFrame {}),
             ]
         }
     );
@@ -92,8 +94,8 @@ fn test_packet_encoding() {
             packet_number: 0x1234567890ABCDEF,
             payload: packets::PacketPayload {
                 frames: vec![
-                    frames::Frame::Padding(frames::padding::PaddingFrame {}),
-                    frames::Frame::Ping(frames::ping::PingFrame {}),
+                    Frame::Padding(padding::PaddingFrame {}),
+                    Frame::Ping(ping::PingFrame {}),
                 ],
             },
         }
@@ -131,8 +133,8 @@ fn test_packet_encoding() {
             packet_number: 0x1234567890ABCDEF,
             payload: packets::PacketPayload {
                 frames: vec![
-                    frames::Frame::Padding(frames::padding::PaddingFrame {}),
-                    frames::Frame::Ping(frames::ping::PingFrame {}),
+                    Frame::Padding(padding::PaddingFrame {}),
+                    Frame::Ping(ping::PingFrame {}),
                 ],
             },
         }
@@ -238,8 +240,8 @@ fn test_packet_decoding() {
                 packet_number: 0x0000000090ABCDEF,
                 payload: packets::PacketPayload {
                     frames: vec![
-                        frames::Frame::Padding(frames::padding::PaddingFrame {}),
-                        frames::Frame::Ping(frames::ping::PingFrame {}),
+                        Frame::Padding(padding::PaddingFrame {}),
+                        Frame::Ping(ping::PingFrame {}),
                     ],
                 },
             }
@@ -275,8 +277,8 @@ fn test_packet_decoding() {
                 packet_number: 0x0000000090ABCDEF,
                 payload: packets::PacketPayload {
                     frames: vec![
-                        frames::Frame::Padding(frames::padding::PaddingFrame {}),
-                        frames::Frame::Ping(frames::ping::PingFrame {}),
+                        Frame::Padding(padding::PaddingFrame {}),
+                        Frame::Ping(ping::PingFrame {}),
                     ],
                 },
             }

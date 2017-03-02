@@ -1,7 +1,7 @@
 use std::io;
 
 use quic::errors::Error;
-use quic::frames::ping;
+use quic::packets::frames::ping;
 
 
 #[test]
