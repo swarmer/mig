@@ -2,11 +2,11 @@ mod frames;
 
 use std::io;
 
-use quic::QUIC_VERSION;
 use quic::endpoint_role::EndpointRole;
 use quic::errors::Error;
-use quic::packets::frames::{Frame, padding, ping};
 use quic::packets;
+use quic::packets::frames::{Frame, padding, ping};
+use quic::QUIC_VERSION;
 
 
 #[test]

@@ -2,10 +2,10 @@ use std::io;
 use std::io::Seek;
 use std::time;
 
-use quic::QUIC_VERSION;
 use quic::endpoint_role::EndpointRole;
-use quic::packets::frames;
 use quic::packets;
+use quic::packets::frames;
+use quic::QUIC_VERSION;
 use super::format_duration;
 
 const ITERATION_COUNT: usize = 1000000;

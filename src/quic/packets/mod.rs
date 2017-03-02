@@ -5,11 +5,11 @@ use std::io;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
-use quic::QUIC_VERSION;
-use quic::errors::{Error, Result};
 use quic::endpoint_role::EndpointRole;
-use self::utils::{map_unexpected_eof, truncate_u64};
+use quic::errors::{Error, Result};
+use quic::QUIC_VERSION;
 use self::frames::Frame;
+use self::utils::{map_unexpected_eof, truncate_u64};
 
 
 pub const FLAG_VERSION: u8 = 0b00000001;

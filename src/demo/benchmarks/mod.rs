@@ -1,7 +1,7 @@
-use std::time;
-
 mod packet_decoding;
 mod packet_encoding;
+
+use std::time;
 
 
 pub fn run_all_benchmarks() {
