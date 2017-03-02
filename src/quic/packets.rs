@@ -4,7 +4,7 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use quic::QUIC_VERSION;
 use quic::errors::{Error, Result};
-use quic::endpoint::EndpointType;
+use quic::endpoint::EndpointRole;
 use quic::utils::{map_unexpected_eof, truncate_u64};
 use super::frames::Frame;
 
@@ -185,7 +185,7 @@ impl Packet {
         Ok(())
     }
 
-    pub fn decode<R: io::Read + io::Seek>(read: &mut R, endpoint_type: EndpointType) -> Result<Packet> {
+    pub fn decode<R: io::Read + io::Seek>(read: &mut R, endpoint_type: EndpointRole) -> Result<Packet> {
         let flags = read.read_u8().map_err(map_unexpected_eof)?;
         let has_version = (flags & FLAG_VERSION) != 0;
         let public_reset = (flags & FLAG_PUBLIC_RESET) != 0;
@@ -219,7 +219,7 @@ impl Packet {
                 // public reset packet
                 Ok(Packet::PublicReset(PublicResetPacket { header: header }))
             },
-            (false, false, _) | (false, true, EndpointType::Server) => {
+            (false, false, _) | (false, true, EndpointRole::Server) => {
                 // regular packet
                 let version = if has_version {
                     let version = read.read_u32::<BigEndian>().map_err(map_unexpected_eof)?;
@@ -251,7 +251,7 @@ impl Packet {
                     )
                 )
             },
-            (false, true, EndpointType::Client) => {
+            (false, true, EndpointRole::Client) => {
                 // version negotiation packet
                 let mut versions = Vec::new();
 

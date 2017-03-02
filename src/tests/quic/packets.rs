@@ -1,7 +1,7 @@
 use std::io;
 
 use quic::QUIC_VERSION;
-use quic::endpoint::EndpointType;
+use quic::endpoint::EndpointRole;
 use quic::errors::Error;
 use quic::frames;
 use quic::packets;
@@ -223,7 +223,7 @@ fn test_packet_decoding() {
         ]
     );
     assert_eq!(
-        packets::Packet::decode(&mut read, EndpointType::Server).unwrap(),
+        packets::Packet::decode(&mut read, EndpointRole::Server).unwrap(),
         packets::Packet::Regular(
             packets::RegularPacket {
                 header: packets::PacketHeader {
@@ -260,7 +260,7 @@ fn test_packet_decoding() {
         ]
     );
     assert_eq!(
-        packets::Packet::decode(&mut read, EndpointType::Server).unwrap(),
+        packets::Packet::decode(&mut read, EndpointRole::Server).unwrap(),
         packets::Packet::Regular(
             packets::RegularPacket {
                 header: packets::PacketHeader {
@@ -295,7 +295,7 @@ fn test_packet_decoding() {
         ]
     );
     assert_eq!(
-        packets::Packet::decode(&mut read, EndpointType::Client).unwrap(),
+        packets::Packet::decode(&mut read, EndpointRole::Client).unwrap(),
         packets::Packet::VersionNegotiation(
             packets::VersionNegotiationPacket {
                 header: packets::PacketHeader {
@@ -319,7 +319,7 @@ fn test_packet_decoding() {
         ]
     );
     assert_eq!(
-        packets::Packet::decode(&mut read, EndpointType::Server).unwrap(),
+        packets::Packet::decode(&mut read, EndpointRole::Server).unwrap(),
         packets::Packet::PublicReset(
             packets::PublicResetPacket {
                 header: packets::PacketHeader {
@@ -348,7 +348,7 @@ fn test_packet_decoding() {
             0x07,
         ]
     );
-    match packets::Packet::decode(&mut read, EndpointType::Server) {
+    match packets::Packet::decode(&mut read, EndpointRole::Server) {
         Err(Error::UnsupportedVersion(..)) => {},
         _ => assert!(false, "UnsupportedVersion error expected"),
     };
@@ -364,7 +364,7 @@ fn test_packet_decoding() {
             0xAB, 0xCD, 0xEF, 0x12,
         ]
     );
-    match packets::Packet::decode(&mut read, EndpointType::Server) {
+    match packets::Packet::decode(&mut read, EndpointRole::Server) {
         Err(Error::UnsupportedVersion(..)) => {},
         _ => assert!(false, "Decoding error expected"),
     };
@@ -379,7 +379,7 @@ fn test_packet_decoding() {
             0x12, 0x34, 0x56, 0x78,
         ]
     );
-    match packets::Packet::decode(&mut read, EndpointType::Server) {
+    match packets::Packet::decode(&mut read, EndpointRole::Server) {
         Err(Error::UnsupportedVersion(..)) => {},
         _ => assert!(false, "Decoding error expected"),
     };
@@ -387,7 +387,7 @@ fn test_packet_decoding() {
     let mut read = io::Cursor::new(
         vec![]
     );
-    match packets::Packet::decode(&mut read, EndpointType::Server) {
+    match packets::Packet::decode(&mut read, EndpointRole::Server) {
         Err(Error::Decoding(..)) => {},
         _ => assert!(false, "Decoding error expected"),
     };

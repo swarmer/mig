@@ -3,7 +3,7 @@ use std::io::Seek;
 use std::time;
 
 use quic::QUIC_VERSION;
-use quic::endpoint::EndpointType;
+use quic::endpoint::EndpointRole;
 use quic::frames;
 use quic::packets;
 use super::format_duration;
@@ -54,7 +54,7 @@ pub fn run_benchmark() {
 
     let start = time::Instant::now();
     for _ in 0..ITERATION_COUNT {
-        packets::Packet::decode(&mut read, EndpointType::Server).unwrap();
+        packets::Packet::decode(&mut read, EndpointRole::Server).unwrap();
 
         bytes_total += read.position();
         read.seek(io::SeekFrom::Start(0)).unwrap();

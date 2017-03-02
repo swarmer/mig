@@ -1,5 +1,5 @@
 #[derive(Clone, Debug, PartialEq)]
-pub enum EndpointType {
+pub enum EndpointRole {
     Server,
     Client,
 }
