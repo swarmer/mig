@@ -1,5 +1,5 @@
 pub mod errors;
-pub mod endpoint;
+pub mod endpoint_role;
 pub mod packets;
 
 

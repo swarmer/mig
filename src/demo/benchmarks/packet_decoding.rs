@@ -3,7 +3,7 @@ use std::io::Seek;
 use std::time;
 
 use quic::QUIC_VERSION;
-use quic::endpoint::EndpointRole;
+use quic::endpoint_role::EndpointRole;
 use quic::packets::frames;
 use quic::packets;
 use super::format_duration;

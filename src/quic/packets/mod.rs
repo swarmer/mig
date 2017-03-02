@@ -7,7 +7,7 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use quic::QUIC_VERSION;
 use quic::errors::{Error, Result};
-use quic::endpoint::EndpointRole;
+use quic::endpoint_role::EndpointRole;
 use self::utils::{map_unexpected_eof, truncate_u64};
 use self::frames::Frame;
 
