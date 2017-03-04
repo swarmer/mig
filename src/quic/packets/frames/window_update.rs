@@ -8,7 +8,7 @@ use quic::packets::utils::map_unexpected_eof;
 
 pub const FRAME_WINDOW_UPDATE: u8 = 0x04;
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct WindowUpdateFrame {
     pub stream_id: u32,
     pub byte_offset: u64,

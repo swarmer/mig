@@ -64,7 +64,7 @@ impl PacketPayload {
 }
 
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct PacketHeader {
     // flags
     pub key_phase: bool,
@@ -74,7 +74,7 @@ pub struct PacketHeader {
     pub connection_id: Option<u64>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct PublicResetPacket {
     pub header: PacketHeader,
 
