@@ -1,6 +1,8 @@
+pub mod engine;
 pub mod errors;
 pub mod endpoint_role;
 pub mod packets;
+pub mod threaded;
 
 
 // temporary implementation-specific version
