@@ -20,7 +20,7 @@ fn run_server(address: String) -> i32 {
         },
     };
 
-    info!("Running server on {}", address);
+    info!("Server on {}: listening for connections...", address);
 
     loop {
         let connection = match listener.accept() {

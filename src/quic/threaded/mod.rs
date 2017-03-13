@@ -4,6 +4,7 @@ mod handle;
 mod timer;
 mod worker;
 
+use std;
 use std::io;
 use std::net::ToSocketAddrs;
 use std::sync::Arc;
@@ -65,6 +66,11 @@ impl QuicListener {
     }
 
     pub fn accept(&self) -> Result<QuicConnection> {
+        // TODO
+        loop {
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+
         unimplemented!()
     }
 }
