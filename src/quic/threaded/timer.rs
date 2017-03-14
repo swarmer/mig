@@ -21,11 +21,18 @@ impl ThreadedTimer {
 
     pub fn time_until_next_event(&self) -> Option<time::Duration> {
         self.scheduled_items.iter()
-        .map(|item| item.instant - time::Instant::now())
-        .min()
+            .map(|item| {
+                let now = time::Instant::now();
+                if item.instant >= now {
+                    item.instant - now
+                } else {
+                    time::Duration::from_millis(0)
+                }
+            })
+            .min()
     }
 
-    pub fn due_events(&mut self) -> Vec<ScheduledEvent> {
+    pub fn pop_due_events(&mut self) -> Vec<ScheduledEvent> {
         let (pending, due) =
             self.scheduled_items.drain(..)
             .partition(|item| item.instant > time::Instant::now());

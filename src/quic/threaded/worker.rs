@@ -4,6 +4,7 @@ use std::net;
 use std::net::ToSocketAddrs;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
+use std::time;
 
 use quic::engine::QuicEngine;
 use quic::engine::udp_packet::{IncomingUdpPacket, OutgoingUdpPacket};
@@ -46,6 +47,11 @@ impl WorkerState {
     fn handle_incoming_packet(&mut self, packet: IncomingUdpPacket) -> Vec<OutgoingUdpPacket> {
         // TODO
         unimplemented!()
+    }
+
+    fn get_event_timeout(&self) -> time::Duration {
+        self.engine.timer_ref().time_until_next_event()
+            .unwrap_or(time::Duration::from_millis(100))
     }
 }
 
@@ -100,6 +106,13 @@ impl Worker {
         let mut incoming_udp_buf = [0; UDP_BUF_SIZE];
 
         loop {
+            let timeout = {
+                let mut state = worker_ref.state.lock().unwrap();
+                state.get_event_timeout()
+            };
+            udp_socket.set_read_timeout(Some(timeout)).unwrap();
+            trace!("Waiting to receive a UDP packet with timeout: {:?}", timeout);
+
             let (packet_size, source_address) = match udp_socket.recv_from(&mut incoming_udp_buf) {
                 Err(ref e) => {
                     error!("UDP recv error: {:?}", e);

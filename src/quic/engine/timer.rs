@@ -3,7 +3,7 @@ use std::time;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ScheduledEvent {
-    // TODO
+    SendPendingData,
 }
 
 pub trait Timer {

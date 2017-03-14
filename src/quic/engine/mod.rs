@@ -3,8 +3,11 @@ pub mod timer;
 pub mod udp_packet;
 
 use std::collections::HashMap;
+use std::time;
 
 use self::udp_packet::{IncomingUdpPacket, OutgoingUdpPacket};
+
+const SEND_DELAY_MS: u64 = 50;
 
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -19,14 +22,18 @@ pub struct QuicEngine<T: timer::Timer> {
 
 impl <T: timer::Timer> QuicEngine<T> {
     pub fn new(timer: T, accept_connections: bool) -> QuicEngine<T> {
-        QuicEngine {
+        let mut engine = QuicEngine {
             timer: timer,
 
             accept_connections: accept_connections,
             connections: HashMap::new(),
 
             pending_packets: Vec::new(),
-        }
+        };
+
+        engine.schedule_send_pending_event();
+
+        engine
     }
 
     pub fn handle_incoming_packet(&mut self, packet: IncomingUdpPacket) {
@@ -43,7 +50,14 @@ impl <T: timer::Timer> QuicEngine<T> {
         self.pending_packets.drain(..).collect()
     }
 
-    pub fn timer_ref(&self, event: timer::ScheduledEvent) -> &T {
+    pub fn timer_ref(&self) -> &T {
         &self.timer
+    }
+
+    fn schedule_send_pending_event(&mut self) {
+        self.timer.schedule(
+            time::Duration::from_millis(SEND_DELAY_MS),
+            timer::ScheduledEvent::SendPendingData,
+        );
     }
 }
