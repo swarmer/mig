@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt;
+use std::io;
 use std::net;
 use std::net::ToSocketAddrs;
 use std::sync::{Arc, Condvar, Mutex};
@@ -51,7 +52,10 @@ impl WorkerState {
 
     fn get_event_timeout(&self) -> time::Duration {
         self.engine.timer_ref().time_until_next_event()
-            .unwrap_or(time::Duration::from_millis(100))
+            .unwrap_or_else(|| {
+                warn!("Unexpectedly, no events pending, using default timeout");
+                time::Duration::from_millis(100)
+            })
     }
 }
 
@@ -106,16 +110,40 @@ impl Worker {
         let mut incoming_udp_buf = [0; UDP_BUF_SIZE];
 
         loop {
-            let timeout = {
+            // process scheduled events
+            // get time until the next one
+            // and get packets to send
+            let (timeout, outgoing_packets) = {
                 let mut state = worker_ref.state.lock().unwrap();
-                state.get_event_timeout()
-            };
-            udp_socket.set_read_timeout(Some(timeout)).unwrap();
-            trace!("Waiting to receive a UDP packet with timeout: {:?}", timeout);
 
+                let mut timeout = state.get_event_timeout();
+                while timeout == time::Duration::from_secs(0) {
+                    debug!("Processing due QUIC events");
+                    state.engine.handle_due_events();
+                    timeout = state.get_event_timeout();
+                }
+
+                (timeout, state.engine.pop_pending_packets())
+            };
+
+            // send pending packets
+            for packet in outgoing_packets {
+                debug!("Sending UDP packet (size: {})", packet.payload.len());
+                if let Err(ref e) = udp_socket.send_to(&packet.payload[..], packet.destination_address) {
+                    error!("UDP send error: {:?}", e);
+                }
+            }
+
+            // receive a packet with a timeout
+            trace!("Waiting to receive a UDP packet with timeout: {:?}", timeout);
+            udp_socket.set_read_timeout(Some(timeout)).unwrap();
             let (packet_size, source_address) = match udp_socket.recv_from(&mut incoming_udp_buf) {
+                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                    trace!("UDP receive timed out");
+                    continue;
+                },
                 Err(ref e) => {
-                    error!("UDP recv error: {:?}", e);
+                    error!("UDP recv error: {:?}, kind: {:?}", e, e.kind());
                     continue;
                 },
                 Ok(result) => result,
@@ -132,19 +160,10 @@ impl Worker {
                 payload: Vec::from(packet_data),
             };
 
-            let outgoing_packets = {
+            {
                 let mut state = worker_ref.state.lock().unwrap();
                 state.handle_incoming_packet(packet);
-
-                state.engine.pop_pending_packets()
             };
-
-            for packet in outgoing_packets {
-                if let Err(ref e) = udp_socket.send_to(&packet.payload[..], packet.destination_address) {
-                    error!("UDP send error: {:?}", e);
-                    continue;
-                }
-            }
         }
     }
 }

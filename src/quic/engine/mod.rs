@@ -41,9 +41,9 @@ impl <T: timer::Timer> QuicEngine<T> {
         unimplemented!()
     }
 
-    pub fn handle_timer_event(&mut self, event: timer::ScheduledEvent) {
+    pub fn handle_due_events(&mut self) {
+        let due_events = self.timer.pop_due_events();
         // TODO
-        unimplemented!()
     }
 
     pub fn pop_pending_packets(&mut self) -> Vec<OutgoingUdpPacket> {

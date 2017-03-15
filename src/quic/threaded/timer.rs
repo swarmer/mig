@@ -31,16 +31,6 @@ impl ThreadedTimer {
             })
             .min()
     }
-
-    pub fn pop_due_events(&mut self) -> Vec<ScheduledEvent> {
-        let (pending, due) =
-            self.scheduled_items.drain(..)
-            .partition(|item| item.instant > time::Instant::now());
-
-        self.scheduled_items = pending;
-
-        due.into_iter().map(|item| item.event).collect()
-    }
 }
 
 impl Timer for ThreadedTimer {
@@ -53,5 +43,15 @@ impl Timer for ThreadedTimer {
             event: event,
             instant: time::Instant::now() + when,
         })
+    }
+
+    fn pop_due_events(&mut self) -> Vec<ScheduledEvent> {
+        let (pending, due) =
+            self.scheduled_items.drain(..)
+            .partition(|item| item.instant > time::Instant::now());
+
+        self.scheduled_items = pending;
+
+        due.into_iter().map(|item| item.event).collect()
     }
 }
