@@ -48,12 +48,12 @@ fn run_server(address: String) -> i32 {
 
 
 fn run_client(address: String) -> i32 {
-    let connection = match QuicConnection::connect(&*address) {
+    let connection = match QuicConnection::new(&*address) {
         Ok(connection) => {
             connection
         },
         Err(e) => {
-            error!("Cannot connect: {}", e);
+            error!("Cannot create a connection: {}", e);
             return 1;
         },
     };

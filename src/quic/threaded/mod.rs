@@ -19,9 +19,9 @@ pub struct QuicConnection {
 }
 
 impl QuicConnection {
-    pub fn connect<A: ToSocketAddrs>(addr: A) -> Result<QuicConnection> {
-        let worker_ref = worker::Worker::new("0.0.0.0", false)?;
-        let handle = worker_ref.connect(addr)?;
+    pub fn new<A: ToSocketAddrs>(addr: A) -> Result<QuicConnection> {
+        let worker_ref = worker::Worker::new("0.0.0.0:0", false)?;
+        let handle = worker_ref.new_connection(addr)?;
         Ok(QuicConnection { worker_ref: worker_ref, handle: handle })
     }
 

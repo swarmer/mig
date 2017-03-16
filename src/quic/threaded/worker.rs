@@ -46,14 +46,13 @@ struct WorkerState {
 
 impl WorkerState {
     fn handle_incoming_packet(&mut self, packet: IncomingUdpPacket) -> Vec<OutgoingUdpPacket> {
-        // TODO
         unimplemented!()
     }
 
     fn get_event_timeout(&self) -> time::Duration {
         self.engine.timer_ref().time_until_next_event()
             .unwrap_or_else(|| {
-                warn!("Unexpectedly, no events pending, using default timeout");
+                trace!("No events pending, using default timeout");
                 time::Duration::from_millis(100)
             })
     }
@@ -84,8 +83,19 @@ impl Worker {
         Ok(worker_ref)
     }
 
-    pub fn connect<A: ToSocketAddrs>(&self, addr: A) -> Result<Handle> {
-        unimplemented!()
+    pub fn new_connection<A: ToSocketAddrs>(&self, addr: A) -> Result<Handle> {
+        let mut state = self.state.lock().unwrap();
+
+        let id = state.engine.initiate_connection();
+        
+        let connection = WorkerConnection {
+            connection_id: id,
+            data_available: Condvar::new(),
+        };
+        let handle = state.handle_generator.generate();
+        state.connection_map.insert(handle, connection);
+
+        Ok(handle)
     }
 
     fn spawn_thread(worker_ref: Arc<Worker>) {
@@ -163,7 +173,7 @@ impl Worker {
             {
                 let mut state = worker_ref.state.lock().unwrap();
                 state.handle_incoming_packet(packet);
-            };
+            }
         }
     }
 }
