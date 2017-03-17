@@ -9,6 +9,7 @@ use rand;
 use rand::Rng;
 
 use quic::endpoint_role::EndpointRole;
+use quic::errors::Result;
 use self::connection::Connection;
 use self::udp_packet::{IncomingUdpPacket, OutgoingUdpPacket};
 
@@ -53,6 +54,10 @@ impl <T: timer::Timer> QuicEngine<T> {
     pub fn handle_due_events(&mut self) {
         let due_events = self.timer.pop_due_events();
         // TODO
+    }
+
+    pub fn write(&mut self, connection_id: u64, stream_id: u32, buf: &[u8]) -> Result<()> {
+        unimplemented!()
     }
 
     pub fn pop_pending_packets(&mut self) -> Vec<OutgoingUdpPacket> {

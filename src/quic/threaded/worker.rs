@@ -9,7 +9,7 @@ use std::time;
 
 use quic::engine::QuicEngine;
 use quic::engine::udp_packet::{IncomingUdpPacket, OutgoingUdpPacket};
-use quic::errors::Result;
+use quic::errors::{Error, Result};
 use super::handle::{Handle, HandleGenerator};
 use super::timer::ThreadedTimer;
 
@@ -87,7 +87,7 @@ impl Worker {
         let mut state = self.state.lock().unwrap();
 
         let id = state.engine.initiate_connection();
-        
+
         let connection = WorkerConnection {
             connection_id: id,
             data_available: Condvar::new(),
@@ -96,6 +96,39 @@ impl Worker {
         state.connection_map.insert(handle, connection);
 
         Ok(handle)
+    }
+
+    pub fn read(&self, handle: Handle, stream_id: u32, buf: &mut [u8]) -> Result<usize> {
+        unimplemented!()
+    }
+
+    pub fn write(&self, handle: Handle, stream_id: u32, buf: &[u8]) -> Result<()> {
+        let outgoing_packets = {
+            let mut state = self.state.lock().unwrap();
+
+            let connection_id = {
+                state.connection_map.get(&handle)
+                .ok_or(Error::InvalidHandle)?
+                .connection_id
+            };
+            
+            state.engine.write(connection_id, stream_id, buf)?;
+
+            state.engine.pop_pending_packets()
+        };
+
+        self.send_packets(outgoing_packets);
+
+        Ok(())
+    }
+
+    fn send_packets(&self, outgoing_packets: Vec<OutgoingUdpPacket>) {
+        for packet in outgoing_packets {
+            debug!("Sending UDP packet (size: {})", packet.payload.len());
+            if let Err(ref e) = self.udp_socket.send_to(&packet.payload[..], packet.destination_address) {
+                error!("UDP send error: {:?}", e);
+            }
+        }
     }
 
     fn spawn_thread(worker_ref: Arc<Worker>) {
@@ -137,12 +170,7 @@ impl Worker {
             };
 
             // send pending packets
-            for packet in outgoing_packets {
-                debug!("Sending UDP packet (size: {})", packet.payload.len());
-                if let Err(ref e) = udp_socket.send_to(&packet.payload[..], packet.destination_address) {
-                    error!("UDP send error: {:?}", e);
-                }
-            }
+            worker_ref.send_packets(outgoing_packets);
 
             // receive a packet with a timeout
             trace!("Waiting to receive a UDP packet with timeout: {:?}", timeout);

@@ -39,17 +39,27 @@ pub struct QuicStream<'a> {
 
 impl<'a> io::Read for QuicStream<'a> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        unimplemented!()
+        let handle = self.connection.handle;
+        let stream_id = self.stream_id;
+
+        self.connection.worker_ref.read(handle, stream_id, buf)
+            .map_err(|e| e.into())
     }
 }
 
 impl<'a> io::Write for QuicStream<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        unimplemented!()
+        let handle = self.connection.handle;
+        let stream_id = self.stream_id;
+
+        self.connection.worker_ref.write(handle, stream_id, buf)
+            .map_err::<io::Error, _>(|e| e.into())?;
+        
+        Ok(buf.len())
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        unimplemented!()
+        Ok(())
     }
 }
 
