@@ -35,14 +35,14 @@ fn run_server(address: String) -> i32 {
 
         let mut stream = connection.get_stream(2);
 
-        let mut buf = [0; 256];
-        let amt = stream.read(&mut buf).unwrap();
+        let mut buf = vec![];
+        let amt = stream.read_to_end(&mut buf).unwrap();
         let buf = &buf[..amt];
 
         let inc_string = std::str::from_utf8(&buf).unwrap();
         info!("Got message: {}", inc_string);
 
-        stream.write(buf).unwrap();
+        stream.write_all(buf).unwrap();
     }
 }
 
@@ -64,10 +64,10 @@ fn run_client(address: String) -> i32 {
 
     let message = "Hello";
     let out_buf = message.as_bytes();
-    stream.write(out_buf).unwrap();
+    stream.write_all(out_buf).unwrap();
 
-    let mut inc_buf = [0; 256];
-    let amt = stream.read(&mut inc_buf).unwrap();
+    let mut inc_buf = vec![];
+    let amt = stream.read_to_end(&mut inc_buf).unwrap();
     let inc_buf = &inc_buf[..amt];
     let inc_string = std::str::from_utf8(&inc_buf).unwrap();
     info!("Got message: {}", inc_string);
