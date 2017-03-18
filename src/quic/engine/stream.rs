@@ -1,3 +1,5 @@
+use std::cmp::min;
+
 use quic::errors::Result;
 use quic::packets::frames::stream;
 
@@ -17,6 +19,8 @@ pub struct Stream {
     pub id: u32,
     pub state: StreamState,
 
+    incoming_buffer: Vec<u8>,
+
     outgoing_buffer: Vec<u8>,
     sent_offset: u64,
 }
@@ -25,10 +29,23 @@ impl Stream {
     pub fn new(id: u32) -> Stream {
         Stream {
             id: id,
-            outgoing_buffer: Vec::new(),
+            incoming_buffer: vec![],
+            outgoing_buffer: vec![],
             sent_offset: 0,
             state: StreamState::Idle,
         }
+    }
+
+    pub fn data_available(&self) -> bool {
+        !self.incoming_buffer.is_empty()
+    }
+
+    pub fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+        let read_size = min(buf.len(), self.incoming_buffer.len());
+        buf.copy_from_slice(&self.incoming_buffer[..read_size]);
+        self.incoming_buffer.drain(..read_size);
+
+        Ok(read_size)
     }
 
     pub fn extend_buf(&mut self, buf: &[u8]) {

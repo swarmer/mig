@@ -38,6 +38,19 @@ impl Connection {
         Ok(())
     }
 
+    pub fn read(&mut self, stream_id: u32, buf: &mut [u8]) -> Result<usize> {
+        self.extend_streams(stream_id);
+        let ref mut stream = self.streams[stream_id as usize];
+        stream.read(buf)
+    }
+
+    pub fn data_available(&self, stream_id: u32) -> bool {
+        match self.streams.get(stream_id as usize) {
+            Some(stream) => stream.data_available(),
+            None => false,
+        }
+    }
+
     pub fn drain_outgoing_packets(&mut self) -> Vec<packets::Packet> {
         let mut packets = vec![];
         let mut frames = vec![];

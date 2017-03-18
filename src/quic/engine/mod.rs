@@ -79,6 +79,22 @@ impl <T: timer::Timer> QuicEngine<T> {
         &self.timer
     }
 
+    pub fn data_available(&self, connection_id: u64, stream_id: u32) -> bool {
+        let connection =
+            self.connections.get(&connection_id)
+            .expect("Invalid connection id");
+
+        connection.data_available(stream_id)
+    }
+
+    pub fn read(&mut self, connection_id: u64, stream_id: u32, buf: &mut [u8]) -> Result<usize> {
+        let connection =
+            self.connections.get_mut(&connection_id)
+            .expect("Invalid connection id");
+
+        connection.read(stream_id, buf)
+    }
+
     fn flush_buffered_data(&mut self) {
         for connection in self.connections.values_mut() {
             let peer_address = connection.peer_address();

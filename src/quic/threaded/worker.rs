@@ -17,14 +17,14 @@ use super::timer::ThreadedTimer;
 #[derive(Default)]
 struct WorkerConnection {
     connection_id: u64,
-    data_available: Condvar,
+    data_available: Arc<Condvar>,
 }
 
 impl fmt::Debug for WorkerConnection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "WorkerConnection {{ connection_id: {}, data_available: Condvar }}",
+            "WorkerConnection {{ connection_id: {}, data_available: Arc<Condvar> }}",
             self.connection_id
         )
     }
@@ -90,7 +90,7 @@ impl Worker {
 
         let connection = WorkerConnection {
             connection_id: id,
-            data_available: Condvar::new(),
+            data_available: Arc::new(Condvar::new()),
         };
         let handle = state.handle_generator.generate();
         state.connection_map.insert(handle, connection);
@@ -99,7 +99,26 @@ impl Worker {
     }
 
     pub fn read(&self, handle: Handle, stream_id: u32, buf: &mut [u8]) -> Result<usize> {
-        unimplemented!()
+        let (connection_id, data_available) = {
+            let mut state = self.state.lock().unwrap();
+
+            let connection = {
+                state.connection_map.get(&handle)
+                .ok_or(Error::InvalidHandle)?
+            };
+
+            (connection.connection_id, connection.data_available.clone())
+        };
+
+        {
+            let mut state = self.state.lock().unwrap();
+
+            while !state.engine.data_available(connection_id, stream_id) {
+                state = data_available.wait(state).unwrap();
+            }
+
+            state.engine.read(connection_id, stream_id, buf)
+        }
     }
 
     pub fn write(&self, handle: Handle, stream_id: u32, buf: &[u8]) -> Result<()> {
