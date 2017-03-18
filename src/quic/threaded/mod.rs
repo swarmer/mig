@@ -2,6 +2,7 @@
 //! A QUIC API based on a threaded connection handler
 mod handle;
 mod timer;
+mod utils;
 mod worker;
 
 use std;
@@ -10,6 +11,7 @@ use std::net::ToSocketAddrs;
 use std::sync::Arc;
 
 use quic::errors::Result;
+use self::utils::get_socket_addr;
 
 
 #[derive(Debug)]
@@ -20,6 +22,7 @@ pub struct QuicConnection {
 
 impl QuicConnection {
     pub fn new<A: ToSocketAddrs>(addr: A) -> Result<QuicConnection> {
+        let addr = get_socket_addr(addr)?;
         let worker_ref = worker::Worker::new("0.0.0.0:0", false)?;
         let handle = worker_ref.new_connection(addr)?;
         Ok(QuicConnection { worker_ref: worker_ref, handle: handle })

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::io;
 use std::net;
-use std::net::ToSocketAddrs;
+use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time;
@@ -83,10 +83,10 @@ impl Worker {
         Ok(worker_ref)
     }
 
-    pub fn new_connection<A: ToSocketAddrs>(&self, addr: A) -> Result<Handle> {
+    pub fn new_connection(&self, addr: SocketAddr) -> Result<Handle> {
         let mut state = self.state.lock().unwrap();
 
-        let id = state.engine.initiate_connection();
+        let id = state.engine.initiate_connection(addr);
 
         let connection = WorkerConnection {
             connection_id: id,
