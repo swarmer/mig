@@ -7,7 +7,7 @@ use quic::errors::Result;
 use quic::packets::frames::Frame;
 use quic::packets::frames::stream;
 use quic::packets;
-use super::stream::Stream;
+use super::stream::{Stream, StreamState};
 
 
 const MAX_DATA_SIZE: usize = 1000;
@@ -33,7 +33,7 @@ impl Connection {
     pub fn write(&mut self, stream_id: u32, buf: &[u8]) -> Result<()> {
         self.extend_streams(stream_id);
         let ref mut stream = self.streams[stream_id as usize];
-        stream.extend_buf(buf);
+        stream.extend_outgoing_buf(buf);
 
         Ok(())
     }
@@ -42,6 +42,18 @@ impl Connection {
         self.extend_streams(stream_id);
         let ref mut stream = self.streams[stream_id as usize];
         stream.read(buf)
+    }
+
+    pub fn finalize_outgoing_stream(&mut self, stream_id: u32) -> Result<()> {
+        self.extend_streams(stream_id);
+        let ref mut stream = self.streams[stream_id as usize];
+        stream.finalize_outgoing();
+
+        Ok(())
+    }
+
+    pub fn any_data_available(&self) -> bool {
+        self.streams.iter().any(|stream| stream.data_available())
     }
 
     pub fn data_available(&self, stream_id: u32) -> bool {
@@ -83,6 +95,23 @@ impl Connection {
                     data_length = 0;
                 }
             }
+
+            match stream.state {
+                StreamState::LocalClosed | StreamState::Closed => {
+                    let frames = vec![
+                        Frame::Stream(
+                            stream::StreamFrame {
+                                stream_id: stream.id,
+                                offset: sent_offset,
+                                stream_data: vec![],
+                                fin: true,
+                            }
+                        )
+                    ];
+                    packets.push(Self::create_stream_packet(self.id, frames));
+                },
+                _ => {},
+            }
         }
 
         if !frames.is_empty() {
@@ -115,8 +144,14 @@ impl Connection {
         let stream_id = stream_frame.stream_id;
         self.extend_streams(stream_id);
 
+        debug!("Stream frame, data len: {}, fin: {}", stream_frame.stream_data.len(), stream_frame.fin);
+
         let ref mut stream = self.streams[stream_id as usize];
-        stream.extend_buf(&stream_frame.stream_data[..]);
+        stream.extend_incoming_buf(&stream_frame.stream_data[..]);
+
+        if stream_frame.fin {
+            stream.finalize_incoming();
+        }
     }
 
     pub fn peer_address(&self) -> net::SocketAddr {
@@ -135,7 +170,7 @@ impl Connection {
         packets::Packet::Regular(packets::RegularPacket {
             header: header,
 
-            version: Some(QUIC_VERSION),
+            version: None,
             packet_number: 0,
             payload: packets::PacketPayload {
                 frames: frames,
@@ -145,8 +180,7 @@ impl Connection {
 
     fn extend_streams(&mut self, stream_id: u32) {
         let next_max_id = self.streams.len() as u32;
-        let additional_count = stream_id - next_max_id + 1;
-        if additional_count <= 0 {
+        if stream_id < next_max_id {
             return;
         }
 

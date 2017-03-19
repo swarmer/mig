@@ -40,6 +40,21 @@ pub struct QuicStream<'a> {
     stream_id: u32,
 }
 
+impl<'a> QuicStream<'a> {
+    pub fn finalize(&self) {
+        let handle = self.connection.handle;
+        let stream_id = self.stream_id;
+
+        self.connection.worker_ref.finalize_outgoing_stream(handle, stream_id).unwrap();
+    }
+}
+
+impl<'a> Drop for QuicStream<'a> {
+    fn drop(&mut self) {
+        self.finalize();
+    }
+}
+
 impl<'a> io::Read for QuicStream<'a> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let handle = self.connection.handle;

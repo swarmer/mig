@@ -83,7 +83,6 @@ impl <T: timer::Timer> QuicEngine<T> {
             }
         };
 
-        // TODO
         match packet {
             packets::Packet::PublicReset(..) => {
                 unimplemented!()
@@ -131,6 +130,19 @@ impl <T: timer::Timer> QuicEngine<T> {
         Ok(())
     }
 
+    pub fn finalize_outgoing_stream(&mut self, connection_id: u64, stream_id: u32) -> Result<()> {
+        {
+            let connection =
+                self.connections.get_mut(&connection_id)
+                .expect("Invalid connection id");
+            connection.finalize_outgoing_stream(stream_id)?;
+        }
+
+        self.flush_buffered_data();
+
+        Ok(())
+    }
+
     pub fn pop_pending_packets(&mut self) -> Vec<OutgoingUdpPacket> {
         self.pending_packets.drain(..).collect()
     }
@@ -145,6 +157,14 @@ impl <T: timer::Timer> QuicEngine<T> {
             .expect("Invalid connection id");
 
         connection.data_available(stream_id)
+    }
+
+    pub fn any_data_available(&self, connection_id: u64) -> bool {
+        let connection =
+            self.connections.get(&connection_id)
+            .expect("Invalid connection id");
+
+        connection.any_data_available()
     }
 
     pub fn read(&mut self, connection_id: u64, stream_id: u32, buf: &mut [u8]) -> Result<usize> {

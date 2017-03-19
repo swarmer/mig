@@ -37,20 +37,47 @@ impl Stream {
     }
 
     pub fn data_available(&self) -> bool {
-        !self.incoming_buffer.is_empty()
+        !self.incoming_buffer.is_empty() || 
+            [StreamState::RemoteClosed, StreamState::Closed].contains(&self.state)
     }
 
     pub fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         let read_size = min(buf.len(), self.incoming_buffer.len());
+        let buf = &mut buf[..read_size];
         buf.copy_from_slice(&self.incoming_buffer[..read_size]);
         self.incoming_buffer.drain(..read_size);
 
+        debug!("read called, size: {}, incoming_buffer.len(): {}", read_size, self.incoming_buffer.len());
         Ok(read_size)
     }
 
-    pub fn extend_buf(&mut self, buf: &[u8]) {
+    pub fn finalize_outgoing(&mut self) {
+        self.state = match self.state {
+            StreamState::Idle => StreamState::LocalClosed,
+            StreamState::Open => StreamState::LocalClosed,
+            StreamState::RemoteClosed => StreamState::Closed,
+            StreamState::LocalClosed => StreamState::LocalClosed,
+            StreamState::Closed => StreamState::Closed,
+        };
+    }
+
+    pub fn finalize_incoming(&mut self) {
+        self.state = match self.state {
+            StreamState::Idle => StreamState::RemoteClosed,
+            StreamState::Open => StreamState::RemoteClosed,
+            StreamState::RemoteClosed => StreamState::RemoteClosed,
+            StreamState::LocalClosed => StreamState::Closed,
+            StreamState::Closed => StreamState::Closed,
+        };
+    }
+
+    pub fn extend_outgoing_buf(&mut self, buf: &[u8]) {
         self.outgoing_buffer.extend(buf);
         self.state = StreamState::Open;
+    }
+
+    pub fn extend_incoming_buf(&mut self, buf: &[u8]) {
+        self.incoming_buffer.extend(buf);
     }
 
     pub fn drain_outgoing_buffer(&mut self) -> (u64, Vec<u8>) {

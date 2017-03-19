@@ -48,6 +48,14 @@ impl WorkerState {
                 time::Duration::from_millis(100)
             })
     }
+
+    fn signal_data_available(&self) {
+        for connection in self.connection_map.values() {
+            if self.engine.any_data_available(connection.connection_id) {
+                connection.data_available.notify_all();
+            }
+        }
+    }
 }
 
 
@@ -162,6 +170,26 @@ impl Worker {
         }
     }
 
+    pub fn finalize_outgoing_stream(&self, handle: Handle, stream_id: u32) -> Result<()> {
+        let outgoing_packets = {
+            let mut state = self.state.lock().unwrap();
+
+            let connection_id = {
+                state.connection_map.get(&handle)
+                .ok_or(Error::InvalidHandle)?
+                .connection_id
+            };
+            
+            state.engine.finalize_outgoing_stream(connection_id, stream_id)?;
+
+            state.engine.pop_pending_packets()
+        };
+
+        self.send_packets(outgoing_packets);
+
+        Ok(())
+    }
+
     fn send_packets(&self, outgoing_packets: Vec<OutgoingUdpPacket>) {
         for packet in outgoing_packets {
             debug!("Sending UDP packet (size: {})", packet.payload.len());
@@ -242,11 +270,12 @@ impl Worker {
                 let mut state = worker_ref.state.lock().unwrap();
                 state.handle_incoming_packet(packet);
 
-                // TODO: signal data condvars
                 trace!("Signaling connections_available: {}", state.engine.have_connections());
                 if state.engine.have_connections() {
                     state.connections_available.notify_all();
                 }
+
+                state.signal_data_available();
             }
         }
     }

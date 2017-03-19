@@ -66,6 +66,7 @@ fn run_client(address: String) -> i32 {
     let message = "Hello";
     let out_buf = message.as_bytes();
     stream.write_all(out_buf).unwrap();
+    stream.finalize();
 
     let mut inc_buf = vec![];
     let amt = stream.read_to_end(&mut inc_buf).unwrap();
