@@ -3,7 +3,7 @@ pub mod stream;
 pub mod timer;
 pub mod udp_packet;
 
-use std::collections::HashMap;
+use std::collections::{VecDeque, HashMap};
 use std::io;
 use std::net;
 use std::time;
@@ -24,6 +24,7 @@ pub struct QuicEngine<T: timer::Timer> {
 
     accept_connections: bool,
     connections: HashMap<u64, Connection>,
+    new_connection_ids: VecDeque<u64>,
 
     pending_packets: Vec<OutgoingUdpPacket>,
 }
@@ -35,6 +36,7 @@ impl <T: timer::Timer> QuicEngine<T> {
 
             accept_connections: accept_connections,
             connections: HashMap::new(),
+            new_connection_ids: VecDeque::new(),
 
             pending_packets: Vec::new(),
         }
@@ -54,6 +56,15 @@ impl <T: timer::Timer> QuicEngine<T> {
     fn accept_connection(&mut self, connection_id: u64, addr: net::SocketAddr) {
         let connection = Connection::new(connection_id, EndpointRole::Server, addr);
         self.connections.insert(connection_id, connection);
+        self.new_connection_ids.push_back(connection_id);
+    }
+
+    pub fn have_connections(&self) -> bool {
+        !self.new_connection_ids.is_empty()
+    }
+
+    pub fn pop_new_connection(&mut self) -> u64 {
+        self.new_connection_ids.pop_front().unwrap()
     }
 
     pub fn handle_incoming_packet(&mut self, packet: IncomingUdpPacket) {

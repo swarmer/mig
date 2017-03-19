@@ -79,11 +79,8 @@ impl QuicListener {
     }
 
     pub fn accept(&self) -> Result<QuicConnection> {
-        // TODO
-        loop {
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
+        let handle = self.worker_ref.accept()?;
 
-        unimplemented!()
+        Ok(QuicConnection { worker_ref: self.worker_ref.clone(), handle: handle })
     }
 }

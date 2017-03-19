@@ -32,6 +32,7 @@ fn run_server(address: String) -> i32 {
                 return 1;
             },
         };
+        info!("Got a connection");
 
         let mut stream = connection.get_stream(2);
 

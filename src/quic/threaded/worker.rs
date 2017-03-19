@@ -14,20 +14,10 @@ use super::handle::{Handle, HandleGenerator};
 use super::timer::ThreadedTimer;
 
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct WorkerConnection {
     connection_id: u64,
     data_available: Arc<Condvar>,
-}
-
-impl fmt::Debug for WorkerConnection {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "WorkerConnection {{ connection_id: {}, data_available: Arc<Condvar> }}",
-            self.connection_id
-        )
-    }
 }
 
 
@@ -42,6 +32,8 @@ struct WorkerState {
     // connections
     handle_generator: HandleGenerator,
     connection_map: HashMap<Handle, WorkerConnection>,
+
+    connections_available: Arc<Condvar>,
 }
 
 impl WorkerState {
@@ -75,6 +67,7 @@ impl Worker {
                     engine: QuicEngine::new(ThreadedTimer::new(), accept_connections),
                     handle_generator: HandleGenerator::new(),
                     connection_map: HashMap::new(),
+                    connections_available: Arc::new(Condvar::new()),
                 }),
                 udp_socket: udp_socket,
             }
@@ -139,6 +132,34 @@ impl Worker {
         self.send_packets(outgoing_packets);
 
         Ok(())
+    }
+
+    pub fn accept(&self) -> Result<Handle> {
+        let connections_available = {
+            let mut state = self.state.lock().unwrap();
+
+            state.connections_available.clone()
+        };
+
+        {
+            let mut state = self.state.lock().unwrap();
+
+            trace!("Checking for new connections: {}", state.engine.have_connections());
+            while !state.engine.have_connections() {
+                state = connections_available.wait(state).unwrap();
+            }
+            trace!("Got a connection");
+            let connection_id = state.engine.pop_new_connection();
+
+            let connection = WorkerConnection {
+                connection_id: connection_id,
+                data_available: Arc::new(Condvar::new()),
+            };
+            let handle = state.handle_generator.generate();
+            state.connection_map.insert(handle, connection);
+
+            Ok(handle)
+        }
     }
 
     fn send_packets(&self, outgoing_packets: Vec<OutgoingUdpPacket>) {
@@ -221,7 +242,11 @@ impl Worker {
                 let mut state = worker_ref.state.lock().unwrap();
                 state.handle_incoming_packet(packet);
 
-                // TODO: signal condvars
+                // TODO: signal data condvars
+                trace!("Signaling connections_available: {}", state.engine.have_connections());
+                if state.engine.have_connections() {
+                    state.connections_available.notify_all();
+                }
             }
         }
     }
