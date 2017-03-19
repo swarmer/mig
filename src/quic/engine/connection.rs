@@ -98,17 +98,21 @@ impl Connection {
 
             match stream.state {
                 StreamState::LocalClosed | StreamState::Closed => {
-                    let frames = vec![
-                        Frame::Stream(
-                            stream::StreamFrame {
-                                stream_id: stream.id,
-                                offset: sent_offset,
-                                stream_data: vec![],
-                                fin: true,
-                            }
-                        )
-                    ];
-                    packets.push(Self::create_stream_packet(self.id, frames));
+                    if !stream.fin_sent {
+                        stream.fin_sent = true;
+
+                        let frames = vec![
+                            Frame::Stream(
+                                stream::StreamFrame {
+                                    stream_id: stream.id,
+                                    offset: sent_offset,
+                                    stream_data: vec![],
+                                    fin: true,
+                                }
+                            )
+                        ];
+                        packets.push(Self::create_stream_packet(self.id, frames));
+                    }
                 },
                 _ => {},
             }
@@ -120,6 +124,7 @@ impl Connection {
             data_length = 0;
         }
 
+        debug!("drain_outgoing_packets len: {}", packets.len());
         packets
     }
 

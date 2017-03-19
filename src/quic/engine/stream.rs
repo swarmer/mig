@@ -18,6 +18,7 @@ pub enum StreamState {
 pub struct Stream {
     pub id: u32,
     pub state: StreamState,
+    pub fin_sent: bool,
 
     incoming_buffer: Vec<u8>,
 
@@ -33,6 +34,7 @@ impl Stream {
             outgoing_buffer: vec![],
             sent_offset: 0,
             state: StreamState::Idle,
+            fin_sent: false,
         }
     }
 
