@@ -4,6 +4,7 @@ pub mod timer;
 pub mod udp_packet;
 
 use std::collections::HashMap;
+use std::io;
 use std::net;
 use std::time;
 
@@ -12,6 +13,7 @@ use rand::Rng;
 
 use quic::endpoint_role::EndpointRole;
 use quic::errors::{Error, Result};
+use quic::packets;
 use self::connection::Connection;
 use self::udp_packet::{IncomingUdpPacket, OutgoingUdpPacket};
 
@@ -45,12 +47,59 @@ impl <T: timer::Timer> QuicEngine<T> {
         let connection = Connection::new(connection_id, EndpointRole::Client, addr);
         self.connections.insert(connection_id, connection);
 
+        debug!("Initiating connection (id: {})", connection_id);
         connection_id
     }
 
+    fn accept_connection(&mut self, connection_id: u64, addr: net::SocketAddr) {
+        let connection = Connection::new(connection_id, EndpointRole::Server, addr);
+        self.connections.insert(connection_id, connection);
+    }
+
     pub fn handle_incoming_packet(&mut self, packet: IncomingUdpPacket) {
+        let endpoint_role = if self.accept_connections {
+            EndpointRole::Server
+        } else {
+            EndpointRole::Client
+        };
+
+        let source_address = packet.source_address;
+        let packet = match packets::Packet::decode(&mut io::Cursor::new(packet.payload), endpoint_role) {
+            Ok(packet) => packet,
+            Err(e) => {
+                error!("Error while decoding incoming packet: {}", e);
+                return;
+            }
+        };
+
         // TODO
-        unimplemented!()
+        match packet {
+            packets::Packet::PublicReset(..) => {
+                unimplemented!()
+            },
+            packets::Packet::Regular(ref regular_packet) => {
+                match regular_packet.header.connection_id {
+                    Some(connection_id) => {
+                        if !self.connections.contains_key(&connection_id) {
+                            if self.accept_connections {
+                                debug!("Registering connection (id: {})", connection_id);
+                                self.accept_connection(connection_id, source_address);
+                            } else {
+                                warn!("Dropping a packet with unknown connection id, can't accept");
+                                return;
+                            }
+                        }
+
+                        let connection = self.connections.get_mut(&connection_id).unwrap();
+                        connection.handle_regular_packet(regular_packet);
+                    },
+                    None => unimplemented!(),
+                }
+            },
+            packets::Packet::VersionNegotiation(..) => {
+                unimplemented!()
+            },
+        }
     }
 
     pub fn handle_due_events(&mut self) {

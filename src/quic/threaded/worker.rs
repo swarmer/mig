@@ -45,8 +45,8 @@ struct WorkerState {
 }
 
 impl WorkerState {
-    fn handle_incoming_packet(&mut self, packet: IncomingUdpPacket) -> Vec<OutgoingUdpPacket> {
-        unimplemented!()
+    fn handle_incoming_packet(&mut self, packet: IncomingUdpPacket) {
+        self.engine.handle_incoming_packet(packet);
     }
 
     fn get_event_timeout(&self) -> time::Duration {
@@ -220,6 +220,8 @@ impl Worker {
             {
                 let mut state = worker_ref.state.lock().unwrap();
                 state.handle_incoming_packet(packet);
+
+                // TODO: signal condvars
             }
         }
     }

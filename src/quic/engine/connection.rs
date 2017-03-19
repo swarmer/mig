@@ -94,6 +94,31 @@ impl Connection {
         packets
     }
 
+    pub fn handle_regular_packet(&mut self, packet: &packets::RegularPacket) {
+        for frame in &packet.payload.frames {
+            match *frame {
+                Frame::Ack(..) => unimplemented!(),
+                Frame::Blocked(..) => unimplemented!(),
+                Frame::ConnectionClose(..) => unimplemented!(),
+                Frame::GoAway(..) => unimplemented!(),
+                Frame::Padding(..) => {},
+                Frame::Ping(..) => {},
+                Frame::RstStream(..) => unimplemented!(),
+                Frame::StopWaiting(..) => unimplemented!(),
+                Frame::Stream(ref stream_frame) => self.handle_stream_frame(stream_frame),
+                Frame::WindowUpdate(..) => unimplemented!(),
+            }
+        }
+    }
+
+    fn handle_stream_frame(&mut self, stream_frame: &stream::StreamFrame) {
+        let stream_id = stream_frame.stream_id;
+        self.extend_streams(stream_id);
+
+        let ref mut stream = self.streams[stream_id as usize];
+        stream.extend_buf(&stream_frame.stream_data[..]);
+    }
+
     pub fn peer_address(&self) -> net::SocketAddr {
         self.peer_address
     }
@@ -118,14 +143,14 @@ impl Connection {
         })
     }
 
-    fn extend_streams(&mut self, new_max_id: u32) {
+    fn extend_streams(&mut self, stream_id: u32) {
         let next_max_id = self.streams.len() as u32;
-        let additional_count = new_max_id - next_max_id + 1;
+        let additional_count = stream_id - next_max_id + 1;
         if additional_count <= 0 {
             return;
         }
 
-        for stream_id in next_max_id..(new_max_id + 1) {
+        for stream_id in next_max_id..(stream_id + 1) {
             self.streams.push(Stream::new(stream_id));
         }
     }
