@@ -63,7 +63,7 @@ fn run_client(address: String) -> i32 {
 
     let mut stream = connection.get_stream(2);
 
-    let message = "Hello";
+    let message = std::iter::repeat("hello").take(1000).collect::<String>();
     let out_buf = message.as_bytes();
     stream.write_all(out_buf).unwrap();
     stream.finalize();
