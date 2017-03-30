@@ -1,7 +1,6 @@
 use std::cmp::min;
 use std::net;
 
-use quic::QUIC_VERSION;
 use quic::endpoint_role::EndpointRole;
 use quic::errors::Result;
 use quic::packets::frames::Frame;
@@ -120,8 +119,6 @@ impl Connection {
 
         if !frames.is_empty() {
             packets.push(Self::create_stream_packet(self.id, frames));
-            frames = vec![];
-            data_length = 0;
         }
 
         debug!("drain_outgoing_packets len: {}", packets.len());

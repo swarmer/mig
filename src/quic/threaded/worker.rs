@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fmt;
 use std::io;
 use std::net;
 use std::net::{SocketAddr, ToSocketAddrs};
@@ -101,7 +100,7 @@ impl Worker {
 
     pub fn read(&self, handle: Handle, stream_id: u32, buf: &mut [u8]) -> Result<usize> {
         let (connection_id, data_available) = {
-            let mut state = self.state.lock().unwrap();
+            let state = self.state.lock().unwrap();
 
             let connection = {
                 state.connection_map.get(&handle)
@@ -131,7 +130,7 @@ impl Worker {
                 .ok_or(Error::InvalidHandle)?
                 .connection_id
             };
-            
+
             state.engine.write(connection_id, stream_id, buf)?;
 
             state.engine.pop_pending_packets()
@@ -144,7 +143,7 @@ impl Worker {
 
     pub fn accept(&self) -> Result<Handle> {
         let connections_available = {
-            let mut state = self.state.lock().unwrap();
+            let state = self.state.lock().unwrap();
 
             state.connections_available.clone()
         };
@@ -179,7 +178,7 @@ impl Worker {
                 .ok_or(Error::InvalidHandle)?
                 .connection_id
             };
-            
+
             state.engine.finalize_outgoing_stream(connection_id, stream_id)?;
 
             state.engine.pop_pending_packets()

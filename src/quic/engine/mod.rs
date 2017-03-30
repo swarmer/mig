@@ -6,13 +6,12 @@ pub mod udp_packet;
 use std::collections::{VecDeque, HashMap};
 use std::io;
 use std::net;
-use std::time;
 
 use rand;
 use rand::Rng;
 
 use quic::endpoint_role::EndpointRole;
-use quic::errors::{Error, Result};
+use quic::errors::{Result};
 use quic::packets;
 use self::connection::Connection;
 use self::udp_packet::{IncomingUdpPacket, OutgoingUdpPacket};
@@ -113,7 +112,7 @@ impl <T: timer::Timer> QuicEngine<T> {
     }
 
     pub fn handle_due_events(&mut self) {
-        let due_events = self.timer.pop_due_events();
+        let _ = self.timer.pop_due_events();
         // TODO
     }
 
@@ -180,7 +179,7 @@ impl <T: timer::Timer> QuicEngine<T> {
             let peer_address = connection.peer_address();
             for packet in connection.drain_outgoing_packets() {
                 let mut buffer = vec![];
-                packet.encode(&mut buffer);
+                packet.encode(&mut buffer).unwrap();
 
                 self.pending_packets.push(OutgoingUdpPacket {
                     destination_address: peer_address,

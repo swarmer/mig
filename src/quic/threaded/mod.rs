@@ -5,7 +5,6 @@ mod timer;
 mod utils;
 mod worker;
 
-use std;
 use std::io;
 use std::net::ToSocketAddrs;
 use std::sync::Arc;
@@ -72,7 +71,7 @@ impl<'a> io::Write for QuicStream<'a> {
 
         self.connection.worker_ref.write(handle, stream_id, buf)
             .map_err::<io::Error, _>(|e| e.into())?;
-        
+
         Ok(buf.len())
     }
 

@@ -1,7 +1,6 @@
 use std::cmp::min;
 
 use quic::errors::Result;
-use quic::packets::frames::stream;
 
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -39,7 +38,7 @@ impl Stream {
     }
 
     pub fn data_available(&self) -> bool {
-        !self.incoming_buffer.is_empty() || 
+        !self.incoming_buffer.is_empty() ||
             [StreamState::RemoteClosed, StreamState::Closed].contains(&self.state)
     }
 
