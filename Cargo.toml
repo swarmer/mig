@@ -3,6 +3,19 @@ name = "mig"
 version = "0.1.0"
 authors = ["Anton Barkovsky <anton@swarmer.me>"]
 
+[features]
+dev_binaries = []
+
+[[bin]]
+name = "version"
+path = "src/bin/version.rs"
+required-features = ["dev_binaries"]
+
+[[bin]]
+name = "bench"
+path = "src/bin/bench.rs"
+required-features = ["dev_binaries"]
+
 [dependencies]
 byteorder = "1.0"
 cast = "0.2"

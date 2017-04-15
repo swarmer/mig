@@ -10,7 +10,7 @@ extern crate rustc_serialize;
 
 
 // Submodules
-pub mod demo;
+pub mod benchmarks;
 pub mod quic;
 
 
