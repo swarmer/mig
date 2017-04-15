@@ -10,6 +10,9 @@ pub mod stream;
 mod utils;
 pub mod window_update;
 
+#[cfg(test)]
+mod tests;
+
 use std::io;
 
 use byteorder::{ReadBytesExt};

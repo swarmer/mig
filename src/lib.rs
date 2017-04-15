@@ -10,8 +10,6 @@ extern crate rustc_serialize;
 
 
 // Submodules
-#[cfg(test)]
-mod tests;
 pub mod demo;
 pub mod quic;
 

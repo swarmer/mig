@@ -1,6 +1,9 @@
 pub mod frames;
 mod utils;
 
+#[cfg(test)]
+mod tests;
+
 use std::io;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
@@ -239,7 +242,7 @@ impl Packet {
                     read.read_uint::<BigEndian>(packet_number_size)
                     .map_err(map_unexpected_eof)?
                     as u64;
-                
+
                 let payload = PacketPayload::decode(read, packet_number_size)?;
 
                 Ok(
