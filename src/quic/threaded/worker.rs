@@ -44,7 +44,7 @@ impl WorkerState {
         self.engine.timer_ref().time_until_next_event()
             .unwrap_or_else(|| {
                 trace!("No events pending, using default timeout");
-                time::Duration::from_millis(100)
+                time::Duration::from_millis(50)
             })
     }
 

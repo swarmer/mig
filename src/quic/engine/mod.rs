@@ -2,6 +2,7 @@ pub mod connection;
 pub mod stream;
 pub mod timer;
 pub mod udp_packet;
+mod stream_buffer;
 
 use std::collections::{VecDeque, HashMap};
 use std::io;

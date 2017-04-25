@@ -7,6 +7,7 @@ use std::io;
 
 #[derive(Debug)]
 pub enum Error {
+    BufferOverflow,
     Decoding(String),
     InvalidHandle,
     InvalidStream(String),
@@ -19,6 +20,10 @@ pub type Result<T> = std::result::Result<T, Error>;
 impl std::convert::Into<io::Error> for Error {
     fn into(self) -> io::Error {
         match self {
+            Error::BufferOverflow => io::Error::new(
+                io::ErrorKind::InvalidData,
+                self,
+            ),
             Error::Decoding(..) => io::Error::new(
                 io::ErrorKind::InvalidData,
                 self,
@@ -43,6 +48,7 @@ impl std::convert::Into<io::Error> for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            Error::BufferOverflow => write!(f, "Incoming buffer overflow"),
             Error::Decoding(ref message) => message.fmt(f),
             Error::InvalidHandle => write!(f, "Invalid handle"),
             Error::InvalidStream(ref message) => write!(f, "Invalid stream: {}", message),
@@ -55,6 +61,7 @@ impl fmt::Display for Error {
 impl std::error::Error for Error {
     fn description(&self) -> &str {
         match *self {
+            Error::BufferOverflow => "Incoming buffer overflow",
             Error::Decoding(ref message) => message,
             Error::InvalidHandle => "Invalid handle",
             Error::InvalidStream(ref message) => message,
@@ -65,6 +72,7 @@ impl std::error::Error for Error {
 
     fn cause(&self) -> Option<&std::error::Error> {
         match *self {
+            Error::BufferOverflow => None,
             Error::Decoding(..) => None,
             Error::InvalidHandle => None,
             Error::InvalidStream(..) => None,
