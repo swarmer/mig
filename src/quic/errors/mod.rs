@@ -9,8 +9,9 @@ use std::io;
 pub enum Error {
     BufferOverflow,
     Decoding(String),
+    InvalidData(String),
     InvalidHandle,
-    InvalidStream(String),
+    InvalidStream,
     Io(io::Error),
     UnsupportedVersion(u32),
 }
@@ -28,11 +29,15 @@ impl std::convert::Into<io::Error> for Error {
                 io::ErrorKind::InvalidData,
                 self,
             ),
+            Error::InvalidData(..) => io::Error::new(
+                io::ErrorKind::InvalidData,
+                self,
+            ),
             Error::InvalidHandle => io::Error::new(
                 io::ErrorKind::InvalidInput,
                 self,
             ),
-            Error::InvalidStream(..) => io::Error::new(
+            Error::InvalidStream => io::Error::new(
                 io::ErrorKind::InvalidInput,
                 self,
             ),
@@ -50,8 +55,9 @@ impl fmt::Display for Error {
         match *self {
             Error::BufferOverflow => write!(f, "Incoming buffer overflow"),
             Error::Decoding(ref message) => message.fmt(f),
+            Error::InvalidData(ref message) => message.fmt(f),
             Error::InvalidHandle => write!(f, "Invalid handle"),
-            Error::InvalidStream(ref message) => write!(f, "Invalid stream: {}", message),
+            Error::InvalidStream => write!(f, "Invalid stream"),
             Error::Io(ref io_error) => io_error.fmt(f),
             Error::UnsupportedVersion(version) => write!(f, "Unsupported version: {}", version),
         }
@@ -63,8 +69,9 @@ impl std::error::Error for Error {
         match *self {
             Error::BufferOverflow => "Incoming buffer overflow",
             Error::Decoding(ref message) => message,
+            Error::InvalidData(ref message) => message,
             Error::InvalidHandle => "Invalid handle",
-            Error::InvalidStream(ref message) => message,
+            Error::InvalidStream => "Invalid stream",
             Error::Io(ref io_error) => io_error.description(),
             Error::UnsupportedVersion(..) => "Unsupported version",
         }
@@ -74,8 +81,9 @@ impl std::error::Error for Error {
         match *self {
             Error::BufferOverflow => None,
             Error::Decoding(..) => None,
+            Error::InvalidData(..) => None,
             Error::InvalidHandle => None,
-            Error::InvalidStream(..) => None,
+            Error::InvalidStream => None,
             Error::Io(ref io_error) => Some(io_error),
             Error::UnsupportedVersion(..) => None,
         }
