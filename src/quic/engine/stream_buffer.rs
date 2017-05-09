@@ -27,8 +27,14 @@ impl StreamBuffer {
             return Err(Error::BufferOverflow);
         }
 
+        // check that we are not writing data that's already been read
+        if position < self.next_index {
+            return Err(Error::InvalidData(String::from("Stream data already delivered")));
+        }
+
         // check that there's no mismatch with the existing data
         let starting_buffer_index = (position - self.next_index) as usize;
+        self.extend_buffer(starting_buffer_index);
         let overlapping_count = min(
             data.len(),
             (self.buffer.len() - starting_buffer_index),
@@ -62,5 +68,30 @@ impl StreamBuffer {
         );
 
         Ok(())
+    }
+
+    pub fn pull_data(&mut self, buf: &mut [u8]) -> usize {
+        let possible_size = min(buf.len(), self.buffer.len());
+        let mut actual_size = 0;
+        for i in 0..possible_size {
+            match self.buffer[i] {
+                Some(b) => {
+                    buf[i] = b;
+                    actual_size += 1;
+                },
+                None => { break; },
+            }
+        }
+
+        self.buffer.drain(..actual_size);
+        self.next_index += actual_size as u64;
+
+        actual_size
+    }
+
+    fn extend_buffer(&mut self, starting_buffer_index: usize) {
+        for _ in self.buffer.len()..starting_buffer_index {
+            self.buffer.push_back(None);
+        }
     }
 }
