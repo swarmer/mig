@@ -1,6 +1,5 @@
-use std::cmp::min;
-
 use quic::errors::Result;
+use super::stream_buffer::StreamBuffer;
 
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -19,7 +18,7 @@ pub struct Stream {
     pub state: StreamState,
     pub fin_sent: bool,
 
-    incoming_buffer: Vec<u8>,
+    incoming_buffer: StreamBuffer,
 
     outgoing_buffer: Vec<u8>,
     sent_offset: u64,
@@ -29,7 +28,7 @@ impl Stream {
     pub fn new(id: u32) -> Stream {
         Stream {
             id: id,
-            incoming_buffer: vec![],
+            incoming_buffer: StreamBuffer::new(10000),
             outgoing_buffer: vec![],
             sent_offset: 0,
             state: StreamState::Idle,
@@ -38,17 +37,14 @@ impl Stream {
     }
 
     pub fn data_available(&self) -> bool {
-        !self.incoming_buffer.is_empty() ||
+        self.incoming_buffer.is_readable() ||
             [StreamState::RemoteClosed, StreamState::Closed].contains(&self.state)
+            // TODO: wat?
     }
 
     pub fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        let read_size = min(buf.len(), self.incoming_buffer.len());
-        let buf = &mut buf[..read_size];
-        buf.copy_from_slice(&self.incoming_buffer[..read_size]);
-        self.incoming_buffer.drain(..read_size);
-
-        debug!("read called, size: {}, incoming_buffer.len(): {}", read_size, self.incoming_buffer.len());
+        let read_size = self.incoming_buffer.pull_data(buf);
+        debug!("read called, size: {}", read_size);
         Ok(read_size)
     }
 
@@ -77,8 +73,8 @@ impl Stream {
         self.state = StreamState::Open;
     }
 
-    pub fn extend_incoming_buf(&mut self, buf: &[u8]) {
-        self.incoming_buffer.extend(buf);
+    pub fn extend_incoming_buf(&mut self, offset: u64, buf: &[u8]) -> Result<()> {
+        self.incoming_buffer.add_data(offset, buf)
     }
 
     pub fn drain_outgoing_buffer(&mut self) -> (u64, Vec<u8>) {

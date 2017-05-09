@@ -4,6 +4,7 @@ use std::collections::VecDeque;
 use quic::errors::{Error, Result};
 
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct StreamBuffer {
     capacity: usize,
     next_index: u64,
@@ -19,21 +20,21 @@ impl StreamBuffer {
         }
     }
 
-    pub fn add_data(&mut self, position: u64, data: &[u8]) -> Result<()> {
+    pub fn add_data(&mut self, offset: u64, data: &[u8]) -> Result<()> {
         // check that the buffer will not overflow
         let max_available_index = self.next_index + (self.capacity as u64) - 1;
-        let max_arriving_index = position + (data.len() as u64) - 1;
+        let max_arriving_index = offset + (data.len() as u64) - 1;
         if max_arriving_index > max_available_index {
             return Err(Error::BufferOverflow);
         }
 
         // check that we are not writing data that's already been read
-        if position < self.next_index {
+        if offset < self.next_index {
             return Err(Error::InvalidData(String::from("Stream data already delivered")));
         }
 
         // check that there's no mismatch with the existing data
-        let starting_buffer_index = (position - self.next_index) as usize;
+        let starting_buffer_index = (offset - self.next_index) as usize;
         self.extend_buffer(starting_buffer_index);
         let overlapping_count = min(
             data.len(),
@@ -47,7 +48,7 @@ impl StreamBuffer {
                     if existing_byte != data[i] {
                         warn!(
                             "Incorrect byte at index {} + {} (got {}, expected {})",
-                            position, i, data[i], existing_byte,
+                            offset, i, data[i], existing_byte,
                         );
                         return Err(
                             Error::InvalidData(String::from("Mismatch with bytes already in buffer"))
@@ -87,6 +88,10 @@ impl StreamBuffer {
         self.next_index += actual_size as u64;
 
         actual_size
+    }
+
+    pub fn is_readable(&self) -> bool {
+        self.buffer.len() > 0 && self.buffer[0].is_some()
     }
 
     fn extend_buffer(&mut self, starting_buffer_index: usize) {

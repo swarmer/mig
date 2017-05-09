@@ -149,7 +149,12 @@ impl Connection {
         debug!("Stream frame, data len: {}, fin: {}", stream_frame.stream_data.len(), stream_frame.fin);
 
         let ref mut stream = self.streams[stream_id as usize];
-        stream.extend_incoming_buf(&stream_frame.stream_data[..]);
+        match stream.extend_incoming_buf(stream_frame.offset, &stream_frame.stream_data[..]) {
+            Ok(()) => {},
+            Err(ref e) => {
+                debug!("Error: {:?}, dropping frame...", e);
+            }
+        }
 
         if stream_frame.fin {
             stream.finalize_incoming();
