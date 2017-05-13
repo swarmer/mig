@@ -3,8 +3,7 @@ use std::net;
 
 use quic::endpoint_role::EndpointRole;
 use quic::errors::Result;
-use quic::packets::frames::Frame;
-use quic::packets::frames::stream;
+use quic::packets::frames::{Frame, stream, window_update};
 use quic::packets;
 use super::stream::{Stream, StreamState};
 
@@ -64,6 +63,39 @@ impl Connection {
 
     pub fn drain_outgoing_packets(&mut self) -> Vec<packets::Packet> {
         let mut packets = vec![];
+
+        packets.extend(self.drain_outgoing_stream_packets());
+        packets.extend(self.drain_outgoing_window_update_packets());
+
+        debug!("drain_outgoing_packets len: {}", packets.len());
+        return packets;
+    }
+
+    pub fn drain_outgoing_window_update_packets(&mut self) -> Vec<packets::Packet> {
+        let mut packets = vec![];
+
+        for stream in &mut self.streams {
+            match stream.new_maximum_data() {
+                Some(maximum_data) => {
+                    packets.push(Self::create_packet(
+                        self.id,
+                        vec![
+                            Frame::WindowUpdate(window_update::WindowUpdateFrame {
+                                stream_id: stream.id,
+                                byte_offset: maximum_data,
+                            }),
+                        ]
+                    ));
+                },
+                None => {},
+            }
+        }
+
+        packets
+    }
+
+    fn drain_outgoing_stream_packets(&mut self) -> Vec<packets::Packet> {
+        let mut packets = vec![];
         let mut frames = vec![];
         let mut data_length = 0;
 
@@ -89,7 +121,7 @@ impl Connection {
                 }
 
                 if !stream_buffer.is_empty() {
-                    packets.push(Self::create_stream_packet(self.id, frames));
+                    packets.push(Self::create_packet(self.id, frames));
                     frames = vec![];
                     data_length = 0;
                 }
@@ -110,7 +142,7 @@ impl Connection {
                                 }
                             )
                         ];
-                        packets.push(Self::create_stream_packet(self.id, frames));
+                        packets.push(Self::create_packet(self.id, frames));
                     }
                 },
                 _ => {},
@@ -118,10 +150,10 @@ impl Connection {
         }
 
         if !frames.is_empty() {
-            packets.push(Self::create_stream_packet(self.id, frames));
+            packets.push(Self::create_packet(self.id, frames));
         }
 
-        debug!("drain_outgoing_packets len: {}", packets.len());
+        debug!("drain_outgoing_stream_packets len: {}", packets.len());
         packets
     }
 
@@ -136,10 +168,20 @@ impl Connection {
                 Frame::Ping(..) => {},
                 Frame::RstStream(..) => unimplemented!(),
                 Frame::StopWaiting(..) => unimplemented!(),
-                Frame::Stream(ref stream_frame) => self.handle_stream_frame(stream_frame),
-                Frame::WindowUpdate(..) => unimplemented!(),
+                Frame::Stream(ref stream_frame) =>
+                    self.handle_stream_frame(stream_frame),
+                Frame::WindowUpdate(ref window_update_frame) =>
+                    self.handle_window_update_frame(window_update_frame),
             }
         }
+    }
+
+    fn handle_window_update_frame(&mut self, wu_frame: &window_update::WindowUpdateFrame) {
+        let stream_id = wu_frame.stream_id;
+        self.extend_streams(stream_id);
+
+        let stream = &mut self.streams[stream_id as usize];
+        stream.max_outgoing_data = wu_frame.byte_offset;
     }
 
     fn handle_stream_frame(&mut self, stream_frame: &stream::StreamFrame) {
@@ -165,7 +207,7 @@ impl Connection {
         self.peer_address
     }
 
-    fn create_stream_packet(connection_id: u64, frames: Vec<Frame>) -> packets::Packet {
+    fn create_packet(connection_id: u64, frames: Vec<Frame>) -> packets::Packet {
         let header = packets::PacketHeader {
             key_phase: false,
             packet_number_size: 4,

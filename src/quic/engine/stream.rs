@@ -4,7 +4,8 @@ use quic::errors::Result;
 use super::stream_buffer::StreamBuffer;
 
 
-pub const INCOMING_BUFFER_SIZE: usize = 100 * 1024;
+//pub const INCOMING_BUFFER_SIZE: usize = 100 * 1024;
+pub const INCOMING_BUFFER_SIZE: usize = 2000;
 
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -24,10 +25,11 @@ pub struct Stream {
     pub fin_sent: bool,
 
     incoming_buffer: StreamBuffer,
+    prev_maximum_data: u64,
     fin_offset: u64,
 
     outgoing_buffer: Vec<u8>,
-    max_outgoing_data: u64,
+    pub max_outgoing_data: u64,
     next_outgoing_offset: u64,
 }
 
@@ -39,6 +41,7 @@ impl Stream {
             fin_sent: false,
 
             incoming_buffer: StreamBuffer::new(INCOMING_BUFFER_SIZE),
+            prev_maximum_data: 0,
             fin_offset: 0,
 
             outgoing_buffer: vec![],
@@ -99,11 +102,26 @@ impl Stream {
     }
 
     pub fn extend_incoming_buf(&mut self, offset: u64, buf: &[u8]) -> Result<()> {
+        if buf.is_empty() {
+            return Ok(())
+        }
+
         self.incoming_buffer.add_data(offset, buf)
     }
 
+    pub fn new_maximum_data(&mut self) -> Option<u64> {
+        let maximum_data = self.incoming_buffer.maximum_accepted_offset() + 1;
+
+        if maximum_data != self.prev_maximum_data {
+            self.prev_maximum_data = maximum_data;
+            Some(maximum_data)
+        } else {
+            None
+        }
+    }
+
     pub fn drain_outgoing_buffer(&mut self) -> (u64, Vec<u8>) {
-        let can_send = (self.max_outgoing_data - self.next_outgoing_offset - 1) as usize;
+        let can_send = (self.max_outgoing_data - self.next_outgoing_offset) as usize;
         let will_send = min(can_send, self.outgoing_buffer.len());
 
         let next_outgoing_offset = self.next_outgoing_offset;

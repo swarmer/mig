@@ -22,9 +22,16 @@ impl StreamBuffer {
 
     pub fn add_data(&mut self, offset: u64, data: &[u8]) -> Result<()> {
         // check that the buffer will not overflow
-        let max_available_index = self.next_index + (self.capacity as u64) - 1;
+        let max_available_index = self.maximum_accepted_offset();
         let max_arriving_index = offset + (data.len() as u64) - 1;
         if max_arriving_index > max_available_index {
+            error!(
+                "Overflow, next_index: {:?}, capacity: {:?}, offset: {:?}, data_len: {:?}",
+                self.next_index,
+                self.capacity,
+                offset,
+                data.len(),
+            );
             return Err(Error::BufferOverflow);
         }
 
@@ -92,6 +99,10 @@ impl StreamBuffer {
 
     pub fn is_readable(&self) -> bool {
         self.buffer.len() > 0 && self.buffer[0].is_some()
+    }
+
+    pub fn maximum_accepted_offset(&self) -> u64 {
+        self.next_index + (self.capacity as u64) - 1
     }
 
     fn extend_buffer(&mut self, starting_buffer_index: usize) {

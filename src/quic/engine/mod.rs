@@ -112,6 +112,8 @@ impl <T: timer::Timer> QuicEngine<T> {
                 unimplemented!()
             },
         }
+
+        self.flush_buffered_data();
     }
 
     pub fn handle_due_events(&mut self) {
