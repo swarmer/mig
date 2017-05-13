@@ -68,7 +68,7 @@ impl Connection {
         let mut data_length = 0;
 
         for stream in &mut self.streams {
-            let (mut sent_offset, stream_buffer) = stream.drain_outgoing_buffer();
+            let (mut next_outgoing_offset, stream_buffer) = stream.drain_outgoing_buffer();
             let mut stream_buffer = &stream_buffer[..];
 
             while !stream_buffer.is_empty() {
@@ -78,14 +78,14 @@ impl Connection {
                     frames.push(Frame::Stream(
                         stream::StreamFrame {
                             stream_id: stream.id,
-                            offset: sent_offset,
+                            offset: next_outgoing_offset,
                             stream_data: Vec::from(&stream_buffer[..will_fit]),
                             fin: false,
                         }
                     ));
 
                     stream_buffer = &stream_buffer[will_fit..];
-                    sent_offset += will_fit as u64;
+                    next_outgoing_offset += will_fit as u64;
                 }
 
                 if !stream_buffer.is_empty() {
@@ -104,7 +104,7 @@ impl Connection {
                             Frame::Stream(
                                 stream::StreamFrame {
                                     stream_id: stream.id,
-                                    offset: sent_offset,
+                                    offset: stream.outgoing_fin_offset(),
                                     stream_data: vec![],
                                     fin: true,
                                 }
@@ -157,7 +157,7 @@ impl Connection {
         }
 
         if stream_frame.fin {
-            stream.finalize_incoming();
+            stream.finalize_incoming(stream_frame.offset);
         }
     }
 

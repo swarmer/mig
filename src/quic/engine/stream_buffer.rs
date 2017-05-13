@@ -7,7 +7,7 @@ use quic::errors::{Error, Result};
 #[derive(Clone, Debug, PartialEq)]
 pub struct StreamBuffer {
     capacity: usize,
-    next_index: u64,
+    pub next_index: u64,
     buffer: VecDeque<Option<u8>>,
 }
 
