@@ -106,6 +106,13 @@ impl Stream {
             return Ok(())
         }
 
+        self.state = match self.state {
+            StreamState::Idle | StreamState::Open => StreamState::Open,
+            StreamState::RemoteClosed => StreamState::RemoteClosed,
+            StreamState::LocalClosed => StreamState::LocalClosed,
+            StreamState::Closed => StreamState::Closed,
+        };
+
         self.incoming_buffer.add_data(offset, buf)
     }
 

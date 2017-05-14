@@ -110,15 +110,23 @@ impl Worker {
             (connection.connection_id, connection.data_available.clone())
         };
 
-        {
+        let (read_size, outgoing_packets) = {
             let mut state = self.state.lock().unwrap();
 
             while !state.engine.data_available(connection_id, stream_id) {
                 state = data_available.wait(state).unwrap();
             }
 
-            state.engine.read(connection_id, stream_id, buf)
-        }
+            let read_size = state.engine.read(connection_id, stream_id, buf);
+
+            let outgoing_packets = state.engine.pop_pending_packets();
+
+            (read_size, outgoing_packets)
+        };
+
+        self.send_packets(outgoing_packets);
+
+        read_size
     }
 
     pub fn write(&self, handle: Handle, stream_id: u32, buf: &[u8]) -> Result<()> {

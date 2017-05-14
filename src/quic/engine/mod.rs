@@ -172,11 +172,17 @@ impl <T: timer::Timer> QuicEngine<T> {
     }
 
     pub fn read(&mut self, connection_id: u64, stream_id: u32, buf: &mut [u8]) -> Result<usize> {
-        let connection =
-            self.connections.get_mut(&connection_id)
-            .expect("Invalid connection id");
+        let read_size = {
+            let connection =
+                self.connections.get_mut(&connection_id)
+                .expect("Invalid connection id");
 
-        connection.read(stream_id, buf)
+            connection.read(stream_id, buf)
+        };
+
+        self.flush_buffered_data();
+
+        read_size
     }
 
     fn flush_buffered_data(&mut self) {

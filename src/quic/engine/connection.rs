@@ -16,6 +16,9 @@ pub struct Connection {
     endpoint_role: EndpointRole,
     peer_address: net::SocketAddr,
     streams: Vec<Stream>,
+
+    incoming_packet_count: u64,
+    outgoing_packet_count: u64,
 }
 
 impl Connection {
@@ -25,6 +28,9 @@ impl Connection {
             endpoint_role: endpoint_role,
             peer_address: peer_address,
             streams: Vec::new(),
+
+            incoming_packet_count: 0,
+            outgoing_packet_count: 0,
         }
     }
 
@@ -67,7 +73,16 @@ impl Connection {
         packets.extend(self.drain_outgoing_stream_packets());
         packets.extend(self.drain_outgoing_window_update_packets());
 
+        self.outgoing_packet_count += packets.len() as u64;
         debug!("drain_outgoing_packets len: {}", packets.len());
+        if !packets.is_empty() {
+            debug!("total outgoing packets: {}", self.outgoing_packet_count);
+        }
+
+        for packet in &packets {
+            trace!("Sending packet: {:?}", packet);
+        }
+
         return packets;
     }
 
@@ -158,6 +173,11 @@ impl Connection {
     }
 
     pub fn handle_regular_packet(&mut self, packet: &packets::RegularPacket) {
+        trace!("Received packet: {:?}", packet);
+
+        self.incoming_packet_count += 1;
+        debug!("total incoming packets: {}", self.incoming_packet_count);
+
         for frame in &packet.payload.frames {
             match *frame {
                 Frame::Ack(..) => unimplemented!(),
