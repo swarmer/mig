@@ -1,4 +1,5 @@
 use std::cmp::min;
+use std::collections::HashSet;
 use std::net;
 
 use quic::endpoint_role::EndpointRole;
@@ -19,6 +20,7 @@ pub struct Connection {
     peer_address: net::SocketAddr,
     pending_packets: Vec<packets::Packet>,
     streams: Vec<Stream>,
+    pub unacked_packet_numbers: HashSet<u64>,
 
     incoming_packet_count: u64,
     outgoing_packet_count: u64,
@@ -34,6 +36,7 @@ impl Connection {
             peer_address: peer_address,
             pending_packets: vec![],
             streams: vec![],
+            unacked_packet_numbers: HashSet::new(),
 
             incoming_packet_count: 0,
             outgoing_packet_count: 0,
@@ -70,6 +73,16 @@ impl Connection {
         match self.streams.get(stream_id as usize) {
             Some(stream) => stream.data_available(),
             None => false,
+        }
+    }
+
+    pub fn check_unacked_packet(&mut self, packet: packets::Packet) {
+        let packet_number = packet.packet_number().unwrap();
+
+        trace!("Unacked packets: {:?}", self.unacked_packet_numbers);
+        if self.unacked_packet_numbers.contains(&packet_number) {
+            debug!("Resending packet: {:?}", packet);
+            self.pending_packets.push(packet);
         }
     }
 
@@ -219,7 +232,9 @@ impl Connection {
         self.extend_streams(stream_id);
 
         let stream = &mut self.streams[stream_id as usize];
-        stream.max_outgoing_data = wu_frame.byte_offset;
+        if wu_frame.byte_offset > stream.max_outgoing_data {
+            stream.max_outgoing_data = wu_frame.byte_offset;
+        }
     }
 
     fn handle_stream_frame(&mut self, stream_frame: &stream::StreamFrame) {
@@ -242,13 +257,40 @@ impl Connection {
     }
 
     fn handle_ack_frame(&mut self, ack_frame: &ack::AckFrame) {
-        // TODO
+        // TODO: implement ACK blocks
+        // self.unacked_packet_numbers =
+        //     self.unacked_packet_numbers
+        //     .clone()
+        //     .into_iter()
+        //     .filter(|&packet_id| packet_id > ack_frame.largest_acknowledged)
+        //     .collect();
+
+        trace!("ACKed ({:?})", ack_frame);
+        self.unacked_packet_numbers.remove(&ack_frame.largest_acknowledged);
     }
 
     fn save_ack_frame(&mut self, packet: &packets::RegularPacket) {
-        if packet.packet_number != self.last_consecutive_packet_number + 1 {
+        // TODO: implement ACK blocks
+        // if packet.packet_number != self.last_consecutive_packet_number + 1 {
+        //     return;
+        // }
+
+        let mut ack_only_packet = true;
+        for frame in &packet.payload.frames {
+            match *frame {
+                Frame::Ack(..) => {},
+                _ => {
+                    ack_only_packet = false;
+                    break;
+                }
+            }
+        }
+
+        if ack_only_packet {
             return;
         }
+
+        trace!("ACKing {:?}", packet);
 
         self.last_consecutive_packet_number = packet.packet_number;
 

@@ -9,6 +9,7 @@ mod tests;
 use std::collections::{VecDeque, HashMap};
 use std::io;
 use std::net;
+use std::time;
 
 use rand;
 use rand::Rng;
@@ -16,6 +17,7 @@ use rand::Rng;
 use quic::endpoint_role::EndpointRole;
 use quic::errors::{Result};
 use quic::packets;
+use quic::packets::frames::Frame;
 use self::connection::Connection;
 use self::udp_packet::{IncomingUdpPacket, OutgoingUdpPacket};
 
@@ -117,8 +119,19 @@ impl <T: timer::Timer> QuicEngine<T> {
     }
 
     pub fn handle_due_events(&mut self) {
-        let _ = self.timer.pop_due_events();
-        // TODO
+        for event in self.timer.pop_due_events() {
+            trace!("Handling event: {:?}", event);
+
+            match event {
+                timer::ScheduledEvent::ResendUnackedPacket(packet) => {
+                    let connection_id = packet.connection_id().unwrap();
+                    let connection = self.connections.get_mut(&connection_id).unwrap();
+                    connection.check_unacked_packet(packet);
+                }
+            }
+        }
+
+        self.flush_buffered_data();
     }
 
     pub fn write(&mut self, connection_id: u64, stream_id: u32, buf: &[u8]) -> Result<()> {
@@ -189,6 +202,33 @@ impl <T: timer::Timer> QuicEngine<T> {
         for connection in self.connections.values_mut() {
             let peer_address = connection.peer_address();
             for packet in connection.drain_outgoing_packets() {
+                let ack_only_packet = match packet {
+                    packets::Packet::Regular(ref regular_packet) => {
+                        let mut ack_only_packet = true;
+                        for frame in &regular_packet.payload.frames {
+                            match *frame {
+                                Frame::Ack(..) => {},
+                                _ => {
+                                    ack_only_packet = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        ack_only_packet
+                    },
+                    _ => false,
+                };
+
+                if !ack_only_packet {
+                    connection.unacked_packet_numbers.insert(packet.packet_number().unwrap());
+
+                    self.timer.schedule(
+                        time::Duration::from_millis(5000),
+                        timer::ScheduledEvent::ResendUnackedPacket(packet.clone()),
+                    );
+                }
+
                 let mut buffer = vec![];
                 packet.encode(&mut buffer).unwrap();
 

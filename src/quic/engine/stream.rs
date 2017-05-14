@@ -4,8 +4,7 @@ use quic::errors::Result;
 use super::stream_buffer::StreamBuffer;
 
 
-//pub const INCOMING_BUFFER_SIZE: usize = 100 * 1024;
-pub const INCOMING_BUFFER_SIZE: usize = 2000;
+pub const INCOMING_BUFFER_SIZE: usize = 100 * 1024;
 
 
 #[derive(Clone, Copy, Debug, PartialEq)]
