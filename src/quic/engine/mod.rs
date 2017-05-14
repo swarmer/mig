@@ -224,7 +224,7 @@ impl <T: timer::Timer> QuicEngine<T> {
                     connection.unacked_packet_numbers.insert(packet.packet_number().unwrap());
 
                     self.timer.schedule(
-                        time::Duration::from_millis(5000),
+                        time::Duration::from_millis(100),
                         timer::ScheduledEvent::ResendUnackedPacket(packet.clone()),
                     );
                 }
