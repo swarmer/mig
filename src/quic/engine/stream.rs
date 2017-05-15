@@ -63,6 +63,23 @@ impl Stream {
         )
     }
 
+    pub fn is_finalized(&self) -> bool {
+        let result =
+            (
+                self.state == StreamState::Idle || (
+                    self.state == StreamState::Closed &&
+                    self.fin_sent
+                )
+            ) &&
+            self.incoming_buffer.is_empty() &&
+            self.incoming_buffer.next_index == self.fin_offset &&
+            self.outgoing_buffer.is_empty();
+
+        trace!("Stream id {} finalized: {}", self.id, result);
+
+        result
+    }
+
     pub fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         let read_size = self.incoming_buffer.pull_data(buf);
         debug!("read called, size: {}", read_size);
@@ -97,7 +114,12 @@ impl Stream {
 
     pub fn extend_outgoing_buf(&mut self, buf: &[u8]) {
         self.outgoing_buffer.extend(buf);
-        self.state = StreamState::Open;
+        self.state = match self.state {
+            StreamState::Idle | StreamState::Open => StreamState::Open,
+            StreamState::RemoteClosed => StreamState::RemoteClosed,
+            StreamState::LocalClosed => panic!("Can't send data after closing the stream!"),
+            StreamState::Closed => panic!("Can't send data after closing the stream!"),
+        };
     }
 
     pub fn extend_incoming_buf(&mut self, offset: u64, buf: &[u8]) -> Result<()> {

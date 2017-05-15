@@ -42,7 +42,4 @@ fn main() {
     stream.finalize();
 
     std::io::copy(&mut stream, &mut std::io::stdout()).unwrap();
-
-    use std;
-    std::thread::sleep_ms(50000);
 }

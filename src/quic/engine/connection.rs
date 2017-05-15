@@ -86,6 +86,18 @@ impl Connection {
         }
     }
 
+    pub fn is_finalized(&self) -> bool {
+        let mut all_streams_finalized = true;
+        for stream in &self.streams {
+            if !stream.is_finalized() {
+                all_streams_finalized = false;
+                break;
+            }
+        }
+
+        self.unacked_packet_numbers.is_empty() && all_streams_finalized
+    }
+
     pub fn drain_outgoing_packets(&mut self) -> Vec<packets::Packet> {
         let mut packets = vec![];
 

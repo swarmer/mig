@@ -101,6 +101,18 @@ impl StreamBuffer {
         self.buffer.len() > 0 && self.buffer[0].is_some()
     }
 
+    pub fn is_empty(&self) -> bool {
+        let mut empty = true;
+        for item in &self.buffer {
+            if item.is_some() {
+                empty = false;
+                break;
+            }
+        }
+
+        empty
+    }
+
     pub fn maximum_accepted_offset(&self) -> u64 {
         self.next_index + (self.capacity as u64) - 1
     }

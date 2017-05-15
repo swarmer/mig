@@ -168,6 +168,14 @@ impl <T: timer::Timer> QuicEngine<T> {
         &self.timer
     }
 
+    pub fn is_finalized(&self, connection_id: u64) -> bool {
+        let connection =
+            self.connections.get(&connection_id)
+            .expect("Invalid connection id");
+
+        connection.is_finalized()
+    }
+
     pub fn data_available(&self, connection_id: u64, stream_id: u32) -> bool {
         let connection =
             self.connections.get(&connection_id)
