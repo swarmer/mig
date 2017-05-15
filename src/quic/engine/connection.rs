@@ -17,7 +17,7 @@ pub struct Connection {
     endpoint_role: EndpointRole,
     last_consecutive_packet_number: u64,
     next_outgoing_packet_number: u64,
-    peer_address: net::SocketAddr,
+    peer_addresses: Vec<net::SocketAddr>,
     pending_packets: Vec<packets::Packet>,
     streams: Vec<Stream>,
     pub unacked_packet_numbers: HashSet<u64>,
@@ -33,7 +33,7 @@ impl Connection {
             endpoint_role: endpoint_role,
             last_consecutive_packet_number: 0,
             next_outgoing_packet_number: 1,
-            peer_address: peer_address,
+            peer_addresses: vec![peer_address],
             pending_packets: vec![],
             streams: vec![],
             unacked_packet_numbers: HashSet::new(),
@@ -212,8 +212,16 @@ impl Connection {
         packets
     }
 
-    pub fn handle_regular_packet(&mut self, packet: &packets::RegularPacket) {
+    fn update_peer_addresses(&mut self, address: net::SocketAddr) {
+        if !self.peer_addresses.contains(&address) {
+            self.peer_addresses.push(address);
+        }
+    }
+
+    pub fn handle_regular_packet(&mut self, packet: &packets::RegularPacket, source_address: net::SocketAddr) {
         trace!("Received packet: {:?}", packet);
+
+        self.update_peer_addresses(source_address);
 
         self.incoming_packet_count += 1;
         debug!("total incoming packets: {}", self.incoming_packet_count);
@@ -325,7 +333,7 @@ impl Connection {
     }
 
     pub fn peer_address(&self) -> net::SocketAddr {
-        self.peer_address
+        *self.peer_addresses.last().unwrap()
     }
 
     fn create_packet(next_packet_number: &mut u64, connection_id: u64, frames: Vec<Frame>) -> packets::Packet {

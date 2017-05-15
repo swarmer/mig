@@ -105,7 +105,7 @@ impl <T: timer::Timer> QuicEngine<T> {
                         }
 
                         let connection = self.connections.get_mut(&connection_id).unwrap();
-                        connection.handle_regular_packet(regular_packet);
+                        connection.handle_regular_packet(regular_packet, source_address);
                     },
                     None => unimplemented!(),
                 }
