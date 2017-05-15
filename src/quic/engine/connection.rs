@@ -1,10 +1,10 @@
 use std::cmp::min;
+use std::collections::HashSet;
 use std::net;
 
 use quic::endpoint_role::EndpointRole;
 use quic::errors::Result;
-use quic::packets::frames::Frame;
-use quic::packets::frames::stream;
+use quic::packets::frames::{ack, Frame, stream, window_update};
 use quic::packets;
 use super::stream::{Stream, StreamState};
 
@@ -15,8 +15,15 @@ const MAX_DATA_SIZE: usize = 1000;
 pub struct Connection {
     id: u64,
     endpoint_role: EndpointRole,
+    last_consecutive_packet_number: u64,
+    next_outgoing_packet_number: u64,
     peer_address: net::SocketAddr,
+    pending_packets: Vec<packets::Packet>,
     streams: Vec<Stream>,
+    pub unacked_packet_numbers: HashSet<u64>,
+
+    incoming_packet_count: u64,
+    outgoing_packet_count: u64,
 }
 
 impl Connection {
@@ -24,8 +31,15 @@ impl Connection {
         Connection {
             id: id,
             endpoint_role: endpoint_role,
+            last_consecutive_packet_number: 0,
+            next_outgoing_packet_number: 1,
             peer_address: peer_address,
-            streams: Vec::new(),
+            pending_packets: vec![],
+            streams: vec![],
+            unacked_packet_numbers: HashSet::new(),
+
+            incoming_packet_count: 0,
+            outgoing_packet_count: 0,
         }
     }
 
@@ -62,13 +76,83 @@ impl Connection {
         }
     }
 
+    pub fn check_unacked_packet(&mut self, packet: packets::Packet) {
+        let packet_number = packet.packet_number().unwrap();
+
+        trace!("Unacked packets: {:?}", self.unacked_packet_numbers);
+        if self.unacked_packet_numbers.contains(&packet_number) {
+            debug!("Resending packet: {:?}", packet);
+            self.pending_packets.push(packet);
+        }
+    }
+
+    pub fn is_finalized(&self) -> bool {
+        let mut all_streams_finalized = true;
+        for stream in &self.streams {
+            if !stream.is_finalized() {
+                all_streams_finalized = false;
+                break;
+            }
+        }
+
+        self.unacked_packet_numbers.is_empty() && all_streams_finalized
+    }
+
     pub fn drain_outgoing_packets(&mut self) -> Vec<packets::Packet> {
+        let mut packets = vec![];
+
+        packets.extend(self.drain_outgoing_stream_packets());
+        packets.extend(self.drain_outgoing_window_update_packets());
+        packets.extend(self.drain_pending_packets());
+
+        self.outgoing_packet_count += packets.len() as u64;
+        debug!("drain_outgoing_packets len: {}", packets.len());
+        if !packets.is_empty() {
+            debug!("total outgoing packets: {}", self.outgoing_packet_count);
+        }
+
+        for packet in &packets {
+            trace!("Sending packet: {:?}", packet);
+        }
+
+        return packets;
+    }
+
+    pub fn drain_pending_packets(&mut self) -> Vec<packets::Packet> {
+        self.pending_packets.drain(..).collect()
+    }
+
+    pub fn drain_outgoing_window_update_packets(&mut self) -> Vec<packets::Packet> {
+        let mut packets = vec![];
+
+        for stream in &mut self.streams {
+            match stream.new_maximum_data() {
+                Some(maximum_data) => {
+                    packets.push(Self::create_packet(
+                        &mut self.next_outgoing_packet_number,
+                        self.id,
+                        vec![
+                            Frame::WindowUpdate(window_update::WindowUpdateFrame {
+                                stream_id: stream.id,
+                                byte_offset: maximum_data,
+                            }),
+                        ]
+                    ));
+                },
+                None => {},
+            }
+        }
+
+        packets
+    }
+
+    fn drain_outgoing_stream_packets(&mut self) -> Vec<packets::Packet> {
         let mut packets = vec![];
         let mut frames = vec![];
         let mut data_length = 0;
 
         for stream in &mut self.streams {
-            let (mut sent_offset, stream_buffer) = stream.drain_outgoing_buffer();
+            let (mut next_outgoing_offset, stream_buffer) = stream.drain_outgoing_buffer();
             let mut stream_buffer = &stream_buffer[..];
 
             while !stream_buffer.is_empty() {
@@ -78,18 +162,19 @@ impl Connection {
                     frames.push(Frame::Stream(
                         stream::StreamFrame {
                             stream_id: stream.id,
-                            offset: sent_offset,
+                            offset: next_outgoing_offset,
                             stream_data: Vec::from(&stream_buffer[..will_fit]),
                             fin: false,
                         }
                     ));
 
                     stream_buffer = &stream_buffer[will_fit..];
-                    sent_offset += will_fit as u64;
+                    next_outgoing_offset += will_fit as u64;
                 }
 
                 if !stream_buffer.is_empty() {
-                    packets.push(Self::create_stream_packet(self.id, frames));
+                    packets.push(Self::create_packet(
+                        &mut self.next_outgoing_packet_number,self.id, frames));
                     frames = vec![];
                     data_length = 0;
                 }
@@ -104,13 +189,14 @@ impl Connection {
                             Frame::Stream(
                                 stream::StreamFrame {
                                     stream_id: stream.id,
-                                    offset: sent_offset,
+                                    offset: stream.outgoing_fin_offset(),
                                     stream_data: vec![],
                                     fin: true,
                                 }
                             )
                         ];
-                        packets.push(Self::create_stream_packet(self.id, frames));
+                        packets.push(Self::create_packet(
+                            &mut self.next_outgoing_packet_number,self.id, frames));
                     }
                 },
                 _ => {},
@@ -118,17 +204,24 @@ impl Connection {
         }
 
         if !frames.is_empty() {
-            packets.push(Self::create_stream_packet(self.id, frames));
+            packets.push(Self::create_packet(
+                &mut self.next_outgoing_packet_number,self.id, frames));
         }
 
-        debug!("drain_outgoing_packets len: {}", packets.len());
+        debug!("drain_outgoing_stream_packets len: {}", packets.len());
         packets
     }
 
     pub fn handle_regular_packet(&mut self, packet: &packets::RegularPacket) {
+        trace!("Received packet: {:?}", packet);
+
+        self.incoming_packet_count += 1;
+        debug!("total incoming packets: {}", self.incoming_packet_count);
+
         for frame in &packet.payload.frames {
             match *frame {
-                Frame::Ack(..) => unimplemented!(),
+                Frame::Ack(ref ack_frame) =>
+                    self.handle_ack_frame(ack_frame),
                 Frame::Blocked(..) => unimplemented!(),
                 Frame::ConnectionClose(..) => unimplemented!(),
                 Frame::GoAway(..) => unimplemented!(),
@@ -136,9 +229,23 @@ impl Connection {
                 Frame::Ping(..) => {},
                 Frame::RstStream(..) => unimplemented!(),
                 Frame::StopWaiting(..) => unimplemented!(),
-                Frame::Stream(ref stream_frame) => self.handle_stream_frame(stream_frame),
-                Frame::WindowUpdate(..) => unimplemented!(),
+                Frame::Stream(ref stream_frame) =>
+                    self.handle_stream_frame(stream_frame),
+                Frame::WindowUpdate(ref window_update_frame) =>
+                    self.handle_window_update_frame(window_update_frame),
             }
+        }
+
+        self.save_ack_frame(packet);
+    }
+
+    fn handle_window_update_frame(&mut self, wu_frame: &window_update::WindowUpdateFrame) {
+        let stream_id = wu_frame.stream_id;
+        self.extend_streams(stream_id);
+
+        let stream = &mut self.streams[stream_id as usize];
+        if wu_frame.byte_offset > stream.max_outgoing_data {
+            stream.max_outgoing_data = wu_frame.byte_offset;
         }
     }
 
@@ -149,18 +256,82 @@ impl Connection {
         debug!("Stream frame, data len: {}, fin: {}", stream_frame.stream_data.len(), stream_frame.fin);
 
         let ref mut stream = self.streams[stream_id as usize];
-        stream.extend_incoming_buf(&stream_frame.stream_data[..]);
+        match stream.extend_incoming_buf(stream_frame.offset, &stream_frame.stream_data[..]) {
+            Ok(()) => {},
+            Err(ref e) => {
+                debug!("Error: {:?}, dropping frame...", e);
+            }
+        }
 
         if stream_frame.fin {
-            stream.finalize_incoming();
+            stream.finalize_incoming(stream_frame.offset);
         }
+    }
+
+    fn handle_ack_frame(&mut self, ack_frame: &ack::AckFrame) {
+        // TODO: implement ACK blocks
+        // self.unacked_packet_numbers =
+        //     self.unacked_packet_numbers
+        //     .clone()
+        //     .into_iter()
+        //     .filter(|&packet_id| packet_id > ack_frame.largest_acknowledged)
+        //     .collect();
+
+        trace!("ACKed ({:?})", ack_frame);
+        self.unacked_packet_numbers.remove(&ack_frame.largest_acknowledged);
+    }
+
+    fn save_ack_frame(&mut self, packet: &packets::RegularPacket) {
+        // TODO: implement ACK blocks
+        // if packet.packet_number != self.last_consecutive_packet_number + 1 {
+        //     return;
+        // }
+
+        let mut ack_only_packet = true;
+        for frame in &packet.payload.frames {
+            match *frame {
+                Frame::Ack(..) => {},
+                _ => {
+                    ack_only_packet = false;
+                    break;
+                }
+            }
+        }
+
+        if ack_only_packet {
+            return;
+        }
+
+        trace!("ACKing {:?}", packet);
+
+        self.last_consecutive_packet_number = packet.packet_number;
+
+        self.pending_packets.push(Self::create_packet(
+            &mut self.next_outgoing_packet_number,self.id, vec![
+            Frame::Ack(ack::AckFrame {
+                // header
+                largest_acknowledged: self.last_consecutive_packet_number,
+                ack_delay: 0,
+
+                // ack block section
+                first_ack_block_length: 0,
+                extra_ack_blocks: vec![],
+
+                // timestamp section
+                first_timestamp: None,
+                extra_timestamps: vec![],
+            }),
+        ]));
     }
 
     pub fn peer_address(&self) -> net::SocketAddr {
         self.peer_address
     }
 
-    fn create_stream_packet(connection_id: u64, frames: Vec<Frame>) -> packets::Packet {
+    fn create_packet(next_packet_number: &mut u64, connection_id: u64, frames: Vec<Frame>) -> packets::Packet {
+        let packet_number = *next_packet_number;
+        *next_packet_number += 1;
+
         let header = packets::PacketHeader {
             key_phase: false,
             packet_number_size: 4,
@@ -173,7 +344,7 @@ impl Connection {
             header: header,
 
             version: None,
-            packet_number: 0,
+            packet_number: packet_number,
             payload: packets::PacketPayload {
                 frames: frames,
             },

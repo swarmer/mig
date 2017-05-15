@@ -4,7 +4,7 @@ extern crate env_logger;
 
 extern crate mig;
 
-use std::io::{Read, Write};
+use std::io::Write;
 use std::str;
 
 use mig::quic::threaded::{QuicConnection};
@@ -41,9 +41,5 @@ fn main() {
     stream.write_all(filename.as_bytes()).unwrap();
     stream.finalize();
 
-    let mut inc_buf = vec![];
-    let amt = stream.read_to_end(&mut inc_buf).unwrap();
-    let inc_buf = &inc_buf[..amt];
-    let inc_string = str::from_utf8(&inc_buf).unwrap();
-    println!("{}", inc_string);
+    std::io::copy(&mut stream, &mut std::io::stdout()).unwrap();
 }

@@ -17,6 +17,7 @@ use super::timer::ThreadedTimer;
 struct WorkerConnection {
     connection_id: u64,
     data_available: Arc<Condvar>,
+    finalized: Arc<Condvar>,
 }
 
 
@@ -44,7 +45,7 @@ impl WorkerState {
         self.engine.timer_ref().time_until_next_event()
             .unwrap_or_else(|| {
                 trace!("No events pending, using default timeout");
-                time::Duration::from_millis(100)
+                time::Duration::from_millis(50)
             })
     }
 
@@ -52,6 +53,14 @@ impl WorkerState {
         for connection in self.connection_map.values() {
             if self.engine.any_data_available(connection.connection_id) {
                 connection.data_available.notify_all();
+            }
+        }
+    }
+
+    fn signal_finalized(&self) {
+        for connection in self.connection_map.values() {
+            if self.engine.is_finalized(connection.connection_id) {
+                connection.finalized.notify_all();
             }
         }
     }
@@ -91,6 +100,7 @@ impl Worker {
         let connection = WorkerConnection {
             connection_id: id,
             data_available: Arc::new(Condvar::new()),
+            finalized: Arc::new(Condvar::new()),
         };
         let handle = state.handle_generator.generate();
         state.connection_map.insert(handle, connection);
@@ -110,15 +120,25 @@ impl Worker {
             (connection.connection_id, connection.data_available.clone())
         };
 
-        {
+        let (read_size, outgoing_packets) = {
             let mut state = self.state.lock().unwrap();
 
             while !state.engine.data_available(connection_id, stream_id) {
                 state = data_available.wait(state).unwrap();
             }
 
-            state.engine.read(connection_id, stream_id, buf)
-        }
+            let read_size = state.engine.read(connection_id, stream_id, buf);
+
+            let outgoing_packets = state.engine.pop_pending_packets();
+
+            state.signal_finalized();
+
+            (read_size, outgoing_packets)
+        };
+
+        self.send_packets(outgoing_packets);
+
+        read_size
     }
 
     pub fn write(&self, handle: Handle, stream_id: u32, buf: &[u8]) -> Result<()> {
@@ -132,6 +152,7 @@ impl Worker {
             };
 
             state.engine.write(connection_id, stream_id, buf)?;
+            state.signal_finalized();
 
             state.engine.pop_pending_packets()
         };
@@ -161,12 +182,32 @@ impl Worker {
             let connection = WorkerConnection {
                 connection_id: connection_id,
                 data_available: Arc::new(Condvar::new()),
+                finalized: Arc::new(Condvar::new()),
             };
             let handle = state.handle_generator.generate();
             state.connection_map.insert(handle, connection);
 
             Ok(handle)
         }
+    }
+
+    pub fn finalize_connection(&self, handle: Handle) -> Result<()> {
+        let mut state = self.state.lock().unwrap();
+
+        let (connection_id, finalized) = {
+            let connection =
+                state.connection_map.get(&handle)
+                .ok_or(Error::InvalidHandle)?;
+
+            (connection.connection_id, connection.finalized.clone())
+        };
+
+        debug!("Waiting to finalize connection...");
+        while !state.engine.is_finalized(connection_id) {
+            state = finalized.wait(state).unwrap();
+        }
+
+        Ok(())
     }
 
     pub fn finalize_outgoing_stream(&self, handle: Handle, stream_id: u32) -> Result<()> {
@@ -233,6 +274,8 @@ impl Worker {
                     timeout = state.get_event_timeout();
                 }
 
+                state.signal_finalized();
+
                 (timeout, state.engine.pop_pending_packets())
             };
 
@@ -275,6 +318,7 @@ impl Worker {
                 }
 
                 state.signal_data_available();
+                state.signal_finalized();
             }
         }
     }

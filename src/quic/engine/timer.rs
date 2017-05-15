@@ -1,9 +1,11 @@
 use std::time;
 
+use quic::packets;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum ScheduledEvent {
-    SendPendingData,
+    ResendUnackedPacket(packets::Packet),
 }
 
 pub trait Timer {

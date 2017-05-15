@@ -32,6 +32,12 @@ impl QuicConnection {
     }
 }
 
+impl Drop for QuicConnection {
+    fn drop(&mut self) {
+        self.worker_ref.finalize_connection(self.handle).unwrap();
+    }
+}
+
 
 #[derive(Debug)]
 pub struct QuicStream<'a> {

@@ -108,6 +108,26 @@ pub enum Packet {
 }
 
 impl Packet {
+    pub fn packet_number(&self) -> Option<u64> {
+        match *self {
+            Packet::Regular(ref regular_packet) => Some(regular_packet.packet_number),
+            _ => None,
+        }
+    }
+
+    pub fn connection_id(&self) -> Option<u64> {
+        let header = match *self {
+            Packet::PublicReset(ref public_reset_packet) =>
+                public_reset_packet.header,
+            Packet::Regular(ref regular_packet) =>
+                regular_packet.header,
+            Packet::VersionNegotiation(ref version_negotiation_packet) =>
+                version_negotiation_packet.header,
+        };
+
+        header.connection_id
+    }
+
     fn encode_header<W>(write: &mut W, header: &PacketHeader, have_version: bool, public_reset: bool) -> Result<()>
             where W: io::Write {
         // flags word
