@@ -119,9 +119,12 @@ fn main() {
         let mut stream2 = connection_copy.get_stream(2);
         let dev2 : &mut TunDevice = unsafe {::std::mem::transmute(dev_force_clone_and_send)};
         
-        loop{std::io::copy(&mut stream2, dev2).unwrap();}
+        std::io::copy(&mut stream2, dev2).unwrap();
     });*/
     
     let mut stream = connection.get_stream(2);
-    loop{std::io::copy(&mut dev, &mut stream).unwrap();}
+    match mode {
+        Mode::Listen  => std::io::copy(&mut dev, &mut stream).unwrap(),
+        Mode::Connect => std::io::copy(&mut stream, &mut dev).unwrap(),
+    };
 }
