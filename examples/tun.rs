@@ -12,6 +12,10 @@ use mig::quic::threaded::{QuicConnection,QuicListener};
 
 use tun::{Device as TunDevice};
 
+use std::sync::Arc;
+use std::os::unix::io::{FromRawFd,AsRawFd};
+
+
 #[derive(Copy,Clone)]
 enum Mode { Listen, Connect, }
 
@@ -78,7 +82,7 @@ fn main() {
     
     let mut dev = tun::create(tunname).unwrap();
     
-    let connection = get_connection(mode, &*address);
+    let connection = Arc::new(get_connection(mode, &*address));
  
     info!("Set the IP address of {} youself", dev.name());
     match mode {
@@ -87,44 +91,39 @@ fn main() {
     }
     
     
-    match mode { 
+    /*match mode { 
         Mode::Connect => {
             info!("Sending a byte");
             let b=[0;1];
-            let mut stream = connection.get_stream(1);
+            let mut stream = connection.get_stream(2);
             stream.write_all(&b).unwrap();
             
         }
         Mode::Listen  => {
             info!("Receiving a byte");
             let mut b=[0;1];
-            let mut stream = connection.get_stream(1);
+            let mut stream = connection.get_stream(2);
             stream.read_exact(&mut b).unwrap();
         }
-    }
+    }*/
     
     
     info!("Serving");
     
-    /*
-    // Caution! Ugly dirty anti-rustic hack ahead
+    
     let connection_copy = connection.clone();
-    let dev_force_clone_and_send : (usize,usize);
-    {
-        let dev_ref : &mut TunDevice = &mut dev;
-        dev_force_clone_and_send = unsafe { ::std::mem::transmute(dev_ref) };
-    }
+    
+    // Hack:
+    let dev_copy = unsafe { ::std::fs::File::from_raw_fd(dev.as_raw_fd()) };
+  
     
     ::std::thread::spawn(move || {
         let mut stream2 = connection_copy.get_stream(2);
-        let dev2 : &mut TunDevice = unsafe {::std::mem::transmute(dev_force_clone_and_send)};
+        let mut my_dev_copy = dev_copy;
         
-        std::io::copy(&mut stream2, dev2).unwrap();
-    });*/
+        std::io::copy(&mut stream2, &mut my_dev_copy).unwrap()
+    });
     
     let mut stream = connection.get_stream(2);
-    match mode {
-        Mode::Listen  => std::io::copy(&mut dev, &mut stream).unwrap(),
-        Mode::Connect => std::io::copy(&mut stream, &mut dev).unwrap(),
-    };
+    std::io::copy(&mut dev, &mut stream).unwrap();
 }
