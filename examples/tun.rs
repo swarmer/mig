@@ -116,14 +116,18 @@ fn main() {
     // Hack:
     let dev_copy = unsafe { ::std::fs::File::from_raw_fd(dev.as_raw_fd()) };
   
+    let (stream_n_1, stream_n_2) = match mode {
+        Mode::Connect => (2,3),
+        Mode::Listen  => (3,2),
+    };
     
     ::std::thread::spawn(move || {
-        let mut stream2 = connection_copy.get_stream(2);
+        let mut stream2 = connection_copy.get_stream(stream_n_1);
         let mut my_dev_copy = dev_copy;
         
         std::io::copy(&mut stream2, &mut my_dev_copy).unwrap()
     });
     
-    let mut stream = connection.get_stream(2);
+    let mut stream = connection.get_stream(stream_n_2);
     std::io::copy(&mut dev, &mut stream).unwrap();
 }
