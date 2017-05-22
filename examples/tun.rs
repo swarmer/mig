@@ -91,21 +91,21 @@ fn main() {
     }
     
     
-    /*match mode { 
+    match mode { 
         Mode::Connect => {
             info!("Sending a byte");
             let b=[0;1];
-            let mut stream = connection.get_stream(2);
+            let mut stream = connection.get_stream(1);
             stream.write_all(&b).unwrap();
             
         }
         Mode::Listen  => {
             info!("Receiving a byte");
             let mut b=[0;1];
-            let mut stream = connection.get_stream(2);
+            let mut stream = connection.get_stream(1);
             stream.read_exact(&mut b).unwrap();
         }
-    }*/
+    }
     
     
     info!("Serving");
@@ -125,9 +125,18 @@ fn main() {
         let mut stream2 = connection_copy.get_stream(stream_n_1);
         let mut my_dev_copy = dev_copy;
         
-        std::io::copy(&mut stream2, &mut my_dev_copy).unwrap()
+        loop {
+            let _ = std::io::copy(&mut stream2, &mut my_dev_copy);
+            info!("Restarting loop 2");
+            ::std::thread::sleep(::std::time::Duration::new(0, 100_000_000));
+        }
     });
     
     let mut stream = connection.get_stream(stream_n_2);
-    std::io::copy(&mut dev, &mut stream).unwrap();
+    
+    loop {
+        let _ = std::io::copy(&mut dev, &mut stream);
+        info!("Restarting loop 1");
+        ::std::thread::sleep(::std::time::Duration::new(0, 100_000_000));
+    }
 }
